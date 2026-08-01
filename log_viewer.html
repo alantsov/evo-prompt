@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Generation Inspector</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card-bg: #181b21;
+      --text: #e6e9ef;
+      --text-muted: #8b92a5;
+      --border: #2a2f3a;
+      --accent: #6c63ff;
+      --accent-hover: #5a52d5;
+      --score-2: #22c55e;
+      --score-1: #f59e0b;
+      --score-0: #ef4444;
+      --score-na: #6b7280;
+      --radius: 8px;
+      --shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    h1 { font-size: 1.5rem; font-weight: 600; }
+
+    #intent-banner {
+      background: linear-gradient(90deg, #1a1d24, #15181e);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      box-shadow: var(--shadow);
+      flex-wrap: wrap;
+    }
+    .intent-label {
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 0.5px;
+    }
+    #intent-text {
+      color: var(--text);
+      font-weight: 500;
+      font-style: italic;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    input, select, button {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+    }
+
+    button {
+      cursor: pointer;
+      background: var(--accent);
+      border: none;
+      font-weight: 500;
+    }
+    button:hover { background: var(--accent-hover); }
+
+    #file-input { display: none; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s;
+    }
+    .card:hover { transform: translateY(-2px); }
+
+    .card-img {
+      width: 100%;
+      object-fit: cover;
+      cursor: zoom-in;
+      background: #000;
+    }
+
+    .card-body { padding: 16px; flex: 1; display: flex; flex-direction: column; gap: 12px; }
+
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .badge {
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.75rem;
+    }
+    .badge-score { background: #333; color: var(--text); }
+    .badge-gen { background: #2a2f3a; color: var(--text-muted); }
+
+    .prompt-box {
+      background: #23262e;
+      padding: 12px;
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      min-height: 60px;
+      max-height: 180px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      scrollbar-width: thin;
+      scrollbar-color: #444 transparent;
+    }
+    .prompt-box::-webkit-scrollbar { width: 6px; }
+    .prompt-box::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+    .reasoning-btn {
+      background: var(--card-bg);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 6px 10px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.8rem;
+      margin-top: 4px;
+      transition: all 0.2s;
+    }
+    .reasoning-btn:hover { background: var(--accent); color: #fff; }
+
+    .reasoning-box {
+      display: none;
+      margin-top: 4px;
+      background: #23262e;
+      padding: 12px;
+      border-radius: var(--radius);
+      font-size: 0.8rem;
+      max-height: 240px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #444 transparent;
+    }
+    .reasoning-box.visible { display: block; }
+    .reasoning-item { margin-bottom: 10px; }
+    .reasoning-item:last-child { margin-bottom: 0; }
+    .reasoning-item strong { color: var(--accent); display: block; margin-bottom: 4px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .reasoning-item p { color: var(--text-muted); white-space: pre-wrap; margin: 0; line-height: 1.4; font-size: 0.8rem; }
+
+    .rubric {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.8rem;
+    }
+
+    .rubric-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .rubric-item:last-child { border-bottom: none; }
+
+    .rubric-score {
+      display: inline-block;
+      width: 22px;
+      height: 22px;
+      line-height: 22px;
+      text-align: center;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.75rem;
+    }
+
+    .note {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+      font-style: italic;
+      padding-left: 8px;
+      border-left: 2px solid #333;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.9);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      cursor: zoom-out;
+    }
+    .modal img {
+      max-width: 95%;
+      max-height: 95%;
+      border-radius: 4px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.8);
+    }
+    .modal.active { display: flex; }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 40px;
+      grid-column: 1 / -1;
+    }
+
+    @media (max-width: 600px) {
+      .grid { grid-template-columns: 1fr; }
+      .card-img { height: 200px; }
+      .prompt-box { max-height: 240px; }
+      #intent-banner { padding: 10px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🔍 Generation Inspector</h1>
+    <div>
+      <input type="file" id="file-input" accept=".json">
+      <button onclick="document.getElementById('file-input').click()">📂 Load JSON</button>
+    </div>
+  </header>
+
+  <div id="intent-banner">
+    <span class="intent-label">🎯 Intent:</span>
+    <span id="intent-text"></span>
+  </div>
+
+  <div class="controls">
+    <input type="text" id="search" placeholder="Search prompt or intent...">
+    <select id="sort-by">
+      <option value="score-desc">Score: High → Low</option>
+      <option value="score-asc">Score: Low → High</option>
+      <option value="gen-desc">Generation: New → Old</option>
+      <option value="gen-asc">Generation: Old → New</option>
+    </select>
+  </div>
+
+  <main id="grid" class="grid">
+    <div class="empty-state">Place your log in <code>data/log.json</code> or use the button to load it manually.</div>
+  </main>
+
+  <div id="modal" class="modal">
+    <img id="modal-img" src="" alt="Full resolution preview">
+  </div>
+
+  <script>
+    const ASSET_DIR = 'data/';
+
+    let rawData = [];
+    const grid = document.getElementById('grid');
+    const searchInput = document.getElementById('search');
+    const sortSelect = document.getElementById('sort-by');
+    const modal = document.getElementById('modal');
+    const modalImg = document.getElementById('modal-img');
+    const fileInput = document.getElementById('file-input');
+    const intentBanner = document.getElementById('intent-banner');
+    const intentText = document.getElementById('intent-text');
+
+    function escapeHtml(text) {
+      if (!text) return 'N/A';
+      const map = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'};
+      return String(text).replace(/[&<>"']/g, (m) => map[m]);
+    }
+
+    function toggleReasoning(btn) {
+      const box = btn.nextElementSibling;
+      const isVisible = box.classList.contains('visible');
+      if (isVisible) {
+        box.classList.remove('visible');
+        btn.textContent = btn.dataset.label;
+      } else {
+        box.classList.add('visible');
+        btn.textContent = btn.dataset.hideLabel;
+      }
+    }
+
+    function updateIntentBanner() {
+      if (rawData.length > 0 && rawData[0]?.intent) {
+        intentText.textContent = rawData[0].intent;
+        intentBanner.style.display = 'flex';
+      } else {
+        intentBanner.style.display = 'none';
+      }
+    }
+
+    (async () => {
+      try {
+        const res = await fetch(`${ASSET_DIR}log.json`);
+        if (res.ok) {
+          rawData = await res.json();
+          updateIntentBanner();
+          render();
+        }
+      } catch (e) {
+        console.log('Auto-load skipped. Use file picker or check that data/log.json exists.');
+      }
+    })();
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          rawData = JSON.parse(ev.target.result);
+          updateIntentBanner();
+          render();
+        } catch (err) {
+          alert('Invalid JSON file.');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    searchInput.addEventListener('input', render);
+    sortSelect.addEventListener('change', render);
+
+    function getScoreColor(score) {
+      if (score === 'N/A') return 'var(--score-na)';
+      const n = Number(score);
+      if (n === 2) return 'var(--score-2)';
+      if (n === 1) return 'var(--score-1)';
+      return 'var(--score-0)';
+    }
+
+    function processPath(path) {
+      const filename = path.split('/').pop();
+      return `${ASSET_DIR}${filename}`;
+    }
+
+    function filterAndSort() {
+      let data = [...rawData];
+      const q = searchInput.value.toLowerCase();
+
+      if (q) {
+        data = data.filter(d =>
+          d.prompt.toLowerCase().includes(q) ||
+          (d.intent && d.intent.toLowerCase().includes(q))
+        );
+      }
+
+      const sort = sortSelect.value;
+      data.sort((a, b) => {
+        if (sort === 'score-desc') return (b.scalar_score ?? -1) - (a.scalar_score ?? -1);
+        if (sort === 'score-asc') return (a.scalar_score ?? -1) - (b.scalar_score ?? -1);
+        if (sort === 'gen-desc') return (b.generation ?? -1) - (a.generation ?? -1);
+        if (sort === 'gen-asc') return (a.generation ?? -1) - (b.generation ?? -1);
+        return 0;
+      });
+
+      return data;
+    }
+
+    function render() {
+      if (rawData.length === 0) {
+        grid.innerHTML = '<div class="empty-state">Place your log in <code>data/log.json</code> or use the button to load it manually.</div>';
+        return;
+      }
+
+      const data = filterAndSort();
+      if (data.length === 0) {
+        grid.innerHTML = '<div class="empty-state">No results match your search.</div>';
+        return;
+      }
+
+      grid.innerHTML = data.map((item) => {
+        const imgUrl = processPath(item.image_path);
+        const scoreBadge = `<span class="badge badge-score">Score: ${item.scalar_score ?? '-'}</span>`;
+        const genBadge = `<span class="badge badge-gen">Gen #${item.generation ?? '?'}</span>`;
+
+        let rubricHtml = '';
+        if (item.rubric) {
+          rubricHtml = Object.entries(item.rubric).map(([key, val]) => {
+            if (key === 'scoring_reasoning') return '';
+            const score = val.score ?? 'N/A';
+            const color = getScoreColor(score);
+            return `
+              <div class="rubric-item">
+                <span>${key}</span>
+                <span class="rubric-score" style="background:${color}">${score}</span>
+              </div>
+              ${val.note ? `<div class="note">${val.note}</div>` : ''}
+            `;
+          }).join('');
+        }
+
+        const pReasoning = escapeHtml(item.prompt_reasoning || 'No generation reasoning available.');
+        const sReasoning = escapeHtml(item.scoring_reasoning || 'No scoring reasoning available.');
+
+        return `
+          <div class="card">
+            <img class="card-img" src="${imgUrl}" alt="Generated image" onclick="openModal('${imgUrl}')" loading="lazy">
+            <div class="card-body">
+              <div class="meta">
+                ${scoreBadge}
+                ${genBadge}
+              </div>
+              <div class="prompt-box">${item.prompt || 'No prompt'}</div>
+              <button class="reasoning-btn" data-label="🔄 Show Prompt Reasoning" data-hide-label="🔄 Hide Prompt Reasoning" onclick="toggleReasoning(this)">🔄 Show Prompt Reasoning</button>
+              <div class="reasoning-box">
+                <div class="reasoning-item"><p>${pReasoning}</p></div>
+              </div>
+              <button class="reasoning-btn" data-label="⚖️ Show Scoring Reasoning" data-hide-label="⚖️ Hide Scoring Reasoning" onclick="toggleReasoning(this)">⚖️ Show Scoring Reasoning</button>
+              <div class="reasoning-box">
+                <div class="reasoning-item"><p>${sReasoning}</p></div>
+              </div>
+              ${rubricHtml ? `<div class="rubric">${rubricHtml}</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openModal(src) {
+      modalImg.src = src;
+      modal.classList.add('active');
+    }
+
+    modal.addEventListener('click', () => modal.classList.remove('active'));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') modal.classList.remove('active');
+    });
+  </script>
+</body>
+</html>

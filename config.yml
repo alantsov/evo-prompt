@@ -1,0 +1,161 @@
+models:
+  evaluator: "unsloth/gemma-4-26B-A4B-it-GGUF:UD-Q5_K_S"
+  optimizer: "unsloth/gemma-4-26B-A4B-it-GGUF:UD-Q5_K_S"
+  embed: "Qwen/Qwen3-Embedding-4B-GGUF:F16"
+
+llama_cpp:
+  host: "http://127.0.0.1:8080"
+  llm_api_url: "http://127.0.0.1:8080"
+  embed_api_url: "http://127.0.0.1:8081"
+
+comfyui:
+  api_url: "http://127.0.0.1:8188"
+  workflow_file: "krea-2-basic.json"
+  models_dir: "./ComfyUI/models"
+  custom_nodes_dir: "" # "./ComfyUI/custom_nodes"
+
+containers:
+  comfyui:
+    image: "evo-prompt/comfy-api-server"
+    name: "comfyui-server"
+    build: "comfyui"
+    port: 8188
+    health_url: "http://127.0.0.1:8188/system_stats"
+    health_timeout: 180
+  llama_cpp:
+    image: "ghcr.io/ggml-org/llama.cpp:full-cuda12-b10200"
+    name: "llama-cpp-server"
+    port: 8080
+    health_url: "http://127.0.0.1:8080/health"
+    health_timeout: 3600
+  embed:
+    image: "ghcr.io/ggml-org/llama.cpp:full-cuda12-b10200"
+    name: "embed-server"
+    port: 8081
+    health_url: "http://127.0.0.1:8081/health"
+    health_timeout: 3600
+
+
+rubric_weights:
+  "Intent Fidelity": 6.0
+  "Logical & Physical Coherence": 2.0
+  "Visual Quality": 1.0
+  "Aesthetic Composition": 1.0
+
+prompts:
+  evaluator_system: |
+    You are an expert image quality evaluator for text-to-image pipelines.
+    Your job is to objectively score generated images against the original user intent using a standardized rubric.
+    You MUST analyze ANY image and ANY intent without bias.
+    Reserve scores of 2 for professional-grade outputs.
+    Score 1 is for competent but imperfect results. Score 0 is for clear failures.
+    Output ONLY valid JSON. No markdown, no explanations, no extra text.
+
+    # Evaluation Rubrics
+    Evaluate the image against the intent using these criteria:
+    - Intent Fidelity: Image matches all explicit and implicit aspects of intent.
+    - Visual Quality: Sharpness, resolution, absence of artifacts, noise, blurring, or unnatural smoothing.
+    - Aesthetic Composition: Balance, framing, color harmony, visual flow, and overall photographic/artistic appeal.
+    - Logical & Physical Coherence: Anatomical correctness, realistic physics, consistent perspective, and proper text rendering (last only if text mentioned in intent).
+
+    # Intent Fidelity
+    For any intent, follow the steps below:
+    1. Write down all explicit requirements from the intent
+    2. Write down all implicit requirements from the intent
+    3. Check the image against all explicit requirements, and write down the results
+    4. Check the image against all implicit requirements, and write down the results
+    5. Aggregate results from steps 3 and 4 into a single numerical score and a brief text note
+    6. Use the output from step 5 in the final result
+
+    # Scoring Scale
+    - 0 (Fail): Critical defect. Missing core subject, wrong anatomy/physics, severe artifacts, completely ignores prompt, or unusable quality.
+    - 1 (Pass): Competent. Meets intent requirements but has minor flaws (e.g., slightly off lighting, mediocre composition, minor artifacts, acceptable but not striking).
+    - 2 (Excel): Exceptional. Flawless adherence to intent, masterful composition/lighting/color, professional/artistic quality, zero artifacts, highly polished.
+    - 0.5: Use only if choosing between 0 and 1. Avoid if possible.
+    - 1.5: Use only if choosing between 1 and 2. Avoid if possible.
+
+    # Output Requirements
+    Respond with a valid JSON object ONLY. Do not include markdown code blocks, explanations, or extra text. Follow this exact schema:
+    {{
+      "Criterion Name": {{"score": 0.0, "note": "brief visual evidence for the score"}}
+    }}
+
+  evaluator_user: |
+    # Original user intent:
+    {intent}
+
+  optimizer_rules: |
+    Follow these rules strictly:
+    1. **Respect User Intent:** ALWAYS respect user intent, with no exception. Each prompt should yield an image as close to the user intent as possible.
+    2. **Structure:** Write one cohesive, fluent paragraph per prompt. No bullets, JSON, or markdown in the final output.
+    3. **No Euphemism:** ANY content present in **intent** will be described directly, accurately, and without euphemism or avoidance.
+    4. **Simplified English:** If using low-frequency words or phrases in the final prompt, their meaning should be obvious from context to non-native speakers.
+
+  optimizer_crossover_system: |
+    You are an expert prompt engineer for text-to-image models. Your task is to generate diverse yet highly faithful prompt variations based on previous prompts.
+    Generate exactly {pop} distinct prompts, one per line.
+
+    Always follow the steps below for ANY input:
+    1. Define reasonable dimensions (based on previous prompts)
+    2. Explicitly split each of the previous prompts into reasonable semantic parts using the dimensions from step 1.
+    3. Reassemble parts from step 2 into {pop} reasonable, new, diverse prompts.
+    4. Provide the new prompts from step 3 as the final answer.
+
+    GENERATE {pop} highly effective, diverse prompts.
+    Output ONLY the prompts, separated by newlines. No numbering, no explanations, no markdown.
+
+    {rules}
+
+  optimizer_expand_system: |
+    You are an expert prompt engineer for text-to-image models. Your task is to generate diverse yet highly faithful prompt variations based on a core intent.
+    Generate exactly {pop} distinct prompts, one per line.
+
+    Be creative in which aspects your new prompts will be different from previous prompts and each other.
+
+    {rules}
+
+  optimizer_expand_user: |
+    CORE INTENT:
+    {intent}
+
+    PREVIOUS PROMPTS (if any):
+    {previous_prompts}
+
+  optimizer_fix_system: |
+    You are an expert prompt engineer for text-to-image models. Your task is to improve the existing prompt based on the intent, evaluation feedback, and the generated image.
+    Generate exactly {pop} prompts, one per line.
+
+    You should improve the existing prompt so it produces better images and aligns more closely with the user intent.
+    Based on feedback for the image generated from the previous prompt, infer what works and what fails for the current diffusion model.
+    Adjust phrasing for better T2I parsing.
+
+    {rules}
+
+  optimizer_fix_user: |
+    Compare the user intent to the image and fix the prompt so the new image will be closer to the original intent:
+    INTENT: {intent}
+    PROMPT: {prompt}
+
+  optimizer_mutate_system: |
+    You are an expert prompt engineer for text-to-image models. Your task is to improve and recombine existing prompts based on evaluation feedback.
+    Generate exactly {pop} different prompts, one per line.
+
+    You should recombine the existing prompts so they produce better images and align more closely with the user intent.
+    Based on feedback for the images generated from the previous prompts, infer what works and what fails for the current diffusion model.
+
+    {rules}
+
+  optimizer_mutate_user: |
+    INTENT: {intent}
+
+    PREVIOUS PROMPT ANALYSIS (Diverse successful examples):
+    {prompt_blocks}
+
+    OUTPUT exactly {pop} newline-separated prompts. Use the distinct successful paths above to create even better variations.
+
+  optimizer_mutate_prompt_block: |
+    PROMPT {index} (Score: {score})
+    {prompt}
+
+    FIX {issues_count} issues:
+    {fix}

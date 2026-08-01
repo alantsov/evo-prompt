@@ -1,0 +1,20 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+data/
+prompts2.md
+prompts3.md
+prompts4.md
+prompts5.md
+output/
+
+ComfyUI/custom_nodes/*/
+ComfyUI/models/*/

@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "evo-prompt"
+version = "0.1.0"
+description = "Evolutionary prompt optimization for ComfyUI"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "docker>=7.2.0",
+    "pyyaml>=6.0.3",
+    "requests>=2.34.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.15.22",
+]
+
+[project.scripts]
+evoprompt = "evo_prompt.main:main"
+demo = "evo_prompt.simple_gepa:demo"
+evoprompt-pull = "scripts.download_comfy_models:main"
+
+[tool.uv]
+package = true
