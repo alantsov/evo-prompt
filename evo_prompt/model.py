@@ -31,7 +31,7 @@ class PromptCandidate:
 
 
 def parse_prompts(raw: str, target_count: int) -> List[str]:
-    return [p.strip() for p in raw.split("\n") if len(p.strip()) > 15][:target_count]
+    return [p.strip() for p in raw.split("\n---\n") if len(p.strip()) > 15][:target_count]
 
 
 def save_trajectory(

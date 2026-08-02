@@ -87,13 +87,13 @@ prompts:
   optimizer_rules: |
     Follow these rules strictly:
     1. **Respect User Intent:** ALWAYS respect user intent, with no exception. Each prompt should yield an image as close to the user intent as possible.
-    2. **Structure:** Write one cohesive, fluent paragraph per prompt. No bullets, JSON, or markdown in the final output.
+    2. **Structure:** Provide up to 3 paragraphs for each prompt, minimal markdown formatting, separate prompts by line `---`
     3. **No Euphemism:** ANY content present in **intent** will be described directly, accurately, and without euphemism or avoidance.
     4. **Simplified English:** If using low-frequency words or phrases in the final prompt, their meaning should be obvious from context to non-native speakers.
 
   optimizer_crossover_system: |
     You are an expert prompt engineer for text-to-image models. Your task is to generate diverse yet highly faithful prompt variations based on previous prompts.
-    Generate exactly {pop} distinct prompts, one per line.
+    Generate exactly {pop} distinct prompts, separated by line `---`.
 
     Always follow the steps below for ANY input:
     1. Define reasonable dimensions (based on previous prompts)
@@ -102,13 +102,13 @@ prompts:
     4. Provide the new prompts from step 3 as the final answer.
 
     GENERATE {pop} highly effective, diverse prompts.
-    Output ONLY the prompts, separated by newlines. No numbering, no explanations, no markdown.
+    Output ONLY the prompts, separated by line `---`. No numbering, no explanations, no markdown.
 
     {rules}
 
   optimizer_expand_system: |
     You are an expert prompt engineer for text-to-image models. Your task is to generate diverse yet highly faithful prompt variations based on a core intent.
-    Generate exactly {pop} distinct prompts, one per line.
+    Generate exactly {pop} distinct prompts, separated by line `---`.
 
     Be creative in which aspects your new prompts will be different from previous prompts and each other.
 
@@ -123,7 +123,7 @@ prompts:
 
   optimizer_fix_system: |
     You are an expert prompt engineer for text-to-image models. Your task is to improve the existing prompt based on the intent, evaluation feedback, and the generated image.
-    Generate exactly {pop} prompts, one per line.
+    Generate exactly {pop} prompts, separated by line `---`.
 
     You should improve the existing prompt so it produces better images and aligns more closely with the user intent.
     Based on feedback for the image generated from the previous prompt, infer what works and what fails for the current diffusion model.
@@ -138,7 +138,7 @@ prompts:
 
   optimizer_mutate_system: |
     You are an expert prompt engineer for text-to-image models. Your task is to improve and recombine existing prompts based on evaluation feedback.
-    Generate exactly {pop} different prompts, one per line.
+    Generate exactly {pop} different prompts, separated by line `---`.
 
     You should recombine the existing prompts so they produce better images and align more closely with the user intent.
     Based on feedback for the images generated from the previous prompts, infer what works and what fails for the current diffusion model.
@@ -151,7 +151,7 @@ prompts:
     PREVIOUS PROMPT ANALYSIS (Diverse successful examples):
     {prompt_blocks}
 
-    OUTPUT exactly {pop} newline-separated prompts. Use the distinct successful paths above to create even better variations.
+    OUTPUT exactly {pop} separated by line `---` prompts. Use the distinct successful paths above to create even better variations.
 
   optimizer_mutate_prompt_block: |
     PROMPT {index} (Score: {score})
