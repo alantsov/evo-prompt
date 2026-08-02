@@ -52,16 +52,13 @@ Add one intent per line to `prompts.md`, then run:
 uv run evoprompt -f prompts.md
 ```
 
-**Advanced Configuration:**
+**Custom Configuration:**
 ```bash
 uv run evoprompt \
+  --infra-config ./configs/prod_infra.yaml \
+  --prompts-config ./configs/v2_prompts.yaml \
   -p "cyberpunk cityscape at night" \
-  -w 8 \
-  -g 6 \
-  -k 4 \
-  -n 3 \
-  -a gepa \
-  -l debug \
+  -w 8 -g 6 -k 4 -n 3 -a gepa -l debug \
   -y krea-2-advanced.json
 ```
 
@@ -69,6 +66,8 @@ uv run evoprompt \
 | :--- | :--- | :--- |
 | `-p, --prompt` | Single intent string to optimize | *(required if no file)* |
 | `-f, --file` | Path to file with intents (one per line) | `prompts.md` |
+| `--infra-config` | Infrastructure YAML (models, containers, APIs) | `config/infra.yaml` |
+| `--prompts-config` | Prompt templates & rubric weights YAML | `config/prompts.yaml` |
 | `-w, --pop-size` | Population size per generation | `4` |
 | `-g, --generations` | Number of optimization generations | `4` |
 | `-k, --top-k` | Top-K parents to keep for mutation/crossover | `4` |
@@ -77,7 +76,6 @@ uv run evoprompt \
 | `-y, --workflow` | ComfyUI workflow JSON template | `krea-2-basic.json` |
 | `-l, --log-level` | Logging verbosity (`debug`, `info`, `warning`, `error`) | `info` |
 | `-o, --output-dir` | Directory to save final images & logs | `output` |
-| `-c, --config` | Path to configuration YAML file | `config.yml` |
 
 ---
 
@@ -115,17 +113,33 @@ uv run pytest
 *   `workflows/`: JSON workflow templates for ComfyUI.
 *   `data/`: Stores all generated images and the optimization trajectory (JSON logs of every generation).
 *   `output/`: Contains the final "Best" image produced by the loop.
-*   `config.yml`: Central configuration for models, prompts, and rules.
+*   `config/`:
+    *   `infra.yaml`: Runtime infrastructure (models, containers, APIs, timeouts)
+    *   `prompts.yaml`: LLM templates, optimizer rules, and `rubric_weights`
 
 ---
 
 ## 🛠 Configuration
 
-The `config.yml` file controls the "brain" of the agent:
-*   **`models`**: Define which HuggingFace GGUF models to use for optimization, evaluation, and embeddings. Models are auto-cached in `~/.cache/huggingface`.
-*   **`prompts`**: Customize the system prompts used by the Evaluator and the Optimizer to fine-tune the behavior of the loop.
-*   **`comfyui`**: Define the API endpoint and the specific workflow JSON file to use.
-*   **`rubric_weights`**: Adjust the importance of each evaluation criterion.
+The configuration is split into two focused files to separate infrastructure concerns from prompt engineering:
+
+### `config/infra.yaml`
+Controls the pipeline's runtime environment:
+*   **`models`**: HuggingFace GGUF paths for evaluation, optimization, and embeddings. Models are auto-cached in `~/.cache/huggingface`.
+*   **`llama_cpp` / `comfyui`**: API endpoints, workflow files, and model directories.
+*   **`containers`**: Docker image names, ports, health-check URLs, and timeouts.
+
+### `config/prompts.yaml`
+Controls the "brain" and scoring logic of the agent:
+*   **`evaluator_system` / `optimizer_*`**: LLM system prompts, rules, and template placeholders.
+*   **`rubric_weights`**: Numerical weights for evaluation criteria. Placed here alongside evaluator prompts to keep scoring criteria tightly coupled with evaluation logic. Example:
+  ```yaml
+  rubric_weights:
+    "Intent Fidelity": 6.0
+    "Logical & Physical Coherence": 2.0
+    "Visual Quality": 1.0
+    "Aesthetic Composition": 1.0
+  ```
 
 ---
 

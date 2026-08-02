@@ -59,9 +59,19 @@ def parse_arguments() -> argparse.Namespace:
         default="output",
         help="Directory to save final images and logs",
     )
-    parser.add_argument(
-        "-c", "--config", default="config.yml", help="Path to configuration YAML file"
+
+    config_group = parser.add_argument_group("Configuration Files")
+    config_group.add_argument(
+        "--infra-config",
+        default="config/infra.yaml",
+        help="Path to infrastructure configuration (models, containers, APIs, rubrics)",
     )
+    config_group.add_argument(
+        "--prompts-config",
+        default="config/prompts.yaml",
+        help="Path to prompt templates configuration",
+    )
+
     parser.add_argument(
         "-l",
         "--log-level",
@@ -108,8 +118,8 @@ def main() -> None:
     init_logging(args.log_level)
     logger = logging.getLogger(__name__)
 
-    # Load configuration (updates global config dict)
-    load_config(args.config)
+    # Load split configuration (infra first, then prompts)
+    load_config(args.infra_config, args.prompts_config)
 
     logger.debug(f"file: {args.file}")
     intents = [args.prompt] if args.prompt else []
@@ -117,6 +127,7 @@ def main() -> None:
         with open(args.file, "r", encoding="utf-8") as f:
             intents = [line.strip() for line in f if line.strip()]
     logger.debug(f"intents:\n{intents}")
+
     # Dispatch optimizer
     logger.info(f"🧠 Using optimizer: {args.optimizer}")
     if args.optimizer == "gepa":
