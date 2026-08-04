@@ -19,7 +19,7 @@ def _format_response(
 
 def expand(intent: str, previous_prompts: List[str], pop: int) -> List[PromptCandidate]:
     user_msg = get_config()["prompts"]["optimizer_expand_user"].format(
-        intent=intent, previous_prompts="\n\n".join(previous_prompts), pop=pop
+        intent=intent, previous_prompts="\n---\n".join(previous_prompts), pop=pop
     )
     sys_prompt = get_config()["prompts"]["optimizer_expand_system"].format(
         pop=pop, rules=get_config()["prompts"]["optimizer_rules"]
@@ -39,7 +39,7 @@ def crossover(
         pop=pop, rules=get_config()["prompts"]["optimizer_rules"]
     )
     previous_prompts = [r.prompt for r in records]
-    user_msg = "\n\n".join(previous_prompts)
+    user_msg = "\n---\n".join(previous_prompts)
     response = call_llm(
         model=get_config()["models"]["optimizer"],
         system_prompt=sys_prompt,
@@ -48,16 +48,20 @@ def crossover(
     return _format_response(response, pop)
 
 
-def fix_prompt(record: GenerationRecord, pop: int) -> List[PromptCandidate]:
+def fix_prompt(
+    record: GenerationRecord, pop: int, image: str | None = None
+) -> List[PromptCandidate]:
     user_msg = get_config()["prompts"]["optimizer_fix_user"].format(
         intent=record.intent, prompt=record.prompt
     )
     sys_prompt = get_config()["prompts"]["optimizer_fix_system"].format(
         pop=pop, rules=get_config()["prompts"]["optimizer_rules"]
     )
+    # Use provided image, fallback to record's image, or None for text-only
+    img_path = image if image is not None else record.image_path
     response = call_llm(
         model=get_config()["models"]["optimizer"],
-        image=record.image_path,
+        image=img_path if img_path else None,
         system_prompt=sys_prompt,
         prompt=user_msg,
     )

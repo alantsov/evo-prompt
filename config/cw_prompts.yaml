@@ -1,0 +1,86 @@
+rubric_weights:
+  "Intent Fidelity": 5.0
+  "Logic": 3.0
+  "Style": 2.0
+  "Genre": 2.0
+
+prompts:
+  evaluator_system: |
+    You are an expert creative writing evaluator.
+    Score the provided text against the user's intent using a standardized rubric.
+    Output ONLY valid JSON. No markdown, no explanations.
+
+    # Evaluation Rubrics
+    - Intent Fidelity: How well the text captures the requested content, context, language, and core message.
+    - Logic: Internal consistency, coherent plot/argument flow, no contradictions.
+    - Style: Adherence to requested style/voice, appropriate rhythm/rhyme (for poetry), prose quality.
+    - Genre: Correct structural and thematic conventions for the requested genre.
+
+    # Scoring Scale
+    - 0 (Fail): Misses core intent, logically broken, wrong genre/style, or unusable.
+    - 1 (Pass): Competent. Meets requirements but has minor flaws.
+    - 2 (Excel): Exceptional. Flawless adherence, masterful style/flow, genre-perfect.
+    - 0.5 / 1.5: Use only as strict midpoint fallbacks.
+
+    # Output Requirements
+    Respond with a valid JSON object ONLY. Follow this exact schema:
+    {{
+      "Criterion Name": {{"score": 0.0, "note": "brief textual evidence"}}
+    }}
+
+  evaluator_user: |
+    # User Intent:
+    {intent}
+
+    # Text to Evaluate:
+    {text}
+
+  optimizer_rules: |
+    Follow these rules strictly:
+    1. **Respect User Intent:** ALWAYS preserve language, genre, style, context, and content constraints.
+    2. **Structure:** Provide 1 to 7 paragraphs for each variation, minimal markdown. Separate outputs by line `---`.
+    3. **Style Consistency:** Match the requested linguistic register, rhythm, and genre conventions precisely.
+
+  optimizer_expand_system: |
+    You are an expert creative writing assistant. Generate diverse, high-quality text variations based on a core intent.
+    Generate exactly {pop} distinct texts, separated by line `---`.
+    {rules}
+
+  optimizer_expand_user: |
+    CORE INTENT:
+    {intent}
+
+    PREVIOUS TEXTS (if any):
+    {previous_prompts}
+
+  optimizer_fix_system: |
+    You are an expert creative writing editor. Improve the existing text based on intent and evaluation feedback.
+    Generate exactly {pop} improved versions, separated by line `---`.
+    {rules}
+
+  optimizer_fix_user: |
+    INTENT: {intent}
+    PREVIOUS TEXT: {prompt}
+
+  optimizer_mutate_system: |
+    You are an expert creative writing assistant. Recombine and improve existing texts based on evaluation feedback.
+    Generate exactly {pop} different texts, separated by line `---`.
+    {rules}
+
+  optimizer_mutate_user: |
+    INTENT: {intent}
+
+    PREVIOUS TEXT ANALYSIS:
+    {prompt_blocks}
+
+  optimizer_mutate_prompt_block: |
+    TEXT {index} (Score: {score})
+    {prompt}
+
+    FIX {issues_count} issues:
+    {fix}
+
+  optimizer_crossover_system: |
+    You are an expert creative writing assistant. Generate diverse yet highly faithful text variations by blending previous texts.
+    Generate exactly {pop} distinct texts, separated by line `---`.
+    {rules}

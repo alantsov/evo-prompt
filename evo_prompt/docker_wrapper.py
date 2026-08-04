@@ -13,6 +13,7 @@ _docker_client = None
 _comfyui_manager = None
 _llama_manager = None
 _embed_manager = None
+_embed_cpu_manager = None  # New
 
 
 def get_docker_client():
@@ -54,6 +55,7 @@ class DockerContainerManager:
         health_check_url=None,
         health_timeout=120,
         cfg=None,
+        use_gpu=True,  # New parameter
     ):
         self.image = image
         self.command = command
@@ -66,6 +68,7 @@ class DockerContainerManager:
         self.container = None
         self.logger = logging.getLogger(name)
         self.config = cfg or {}
+        self.use_gpu = use_gpu  # Store flag
 
     def start(self):
         if self.container and self.container.status == "running":
@@ -103,15 +106,17 @@ class DockerContainerManager:
         if self.name:
             run_kwargs["name"] = self.name
 
-        if is_gpu_available():
+        # Modified GPU check
+        if self.use_gpu and is_gpu_available():
             run_kwargs["device_requests"] = [
                 docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])
             ]
             logger.info("🟢 NVIDIA GPU support detected. Enabling GPU passthrough.")
         else:
-            logger.warning(
-                "🔴 NVIDIA GPU runtime not detected. Running container on CPU."
-            )
+            if self.use_gpu:
+                logger.warning("🔴 NVIDIA GPU runtime not detected. Running container on CPU.")
+            else:
+                logger.info("🟡 CPU-only mode enforced for this container.")
 
         try:
             self.container = client.containers.run(**run_kwargs)
@@ -166,7 +171,6 @@ def get_comfyui_manager():
         comfy_cfg = get_config().get("comfyui", {})
 
         def resolve_path(config_val: str) -> str:
-            """Resolves a path string relative to BASE_DIR if not absolute, and expands ~."""
             p = Path(config_val)
             if not p.is_absolute():
                 p = BASE_DIR / p
@@ -175,14 +179,11 @@ def get_comfyui_manager():
         models_dir = resolve_path(comfy_cfg.get("models_dir", "./ComfyUI/models"))
         volumes[models_dir] = {"bind": "/app/comfyui/models", "mode": "ro"}
         if comfy_cfg.get("custom_nodes_dir", ''):
-            custom_nodes_dir = resolve_path(
-                comfy_cfg.get("custom_nodes_dir", '')
-            )
-            volumes[custom_nodes_dir] =  {"bind": "/app/comfyui/custom_nodes", "mode": "ro"}
+            custom_nodes_dir = resolve_path(comfy_cfg.get("custom_nodes_dir", ''))
+            volumes[custom_nodes_dir] = {"bind": "/app/comfyui/custom_nodes", "mode": "ro"}
 
         if not Path(models_dir).is_dir():
             logger.warning(f"⚠️ ComfyUI models directory not found: {models_dir}")
-
 
         _comfyui_manager = DockerContainerManager(
             image=cfg["image"],
@@ -192,6 +193,7 @@ def get_comfyui_manager():
             health_check_url=cfg["health_url"],
             health_timeout=cfg["health_timeout"],
             cfg=cfg,
+            use_gpu=True,
         )
     return _comfyui_manager
 
@@ -220,38 +222,17 @@ def get_llama_manager():
             },
             environment={"HOME": "/home/user"},
             command=[
-                "--server",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                str(cfg["port"]),
-                "-hf",
-                get_config()["models"]["evaluator"],
-                "--no-cache-prompt",
-                "--parallel",
-                "1",
-                "-ngl",
-                "999",
-                "-c",
-                "32000",
-                "--reasoning-format",
-                "deepseek",
-                "--cache-type-k",
-                "f16",
-                "--cache-type-v",
-                "f16",
-                "--reasoning-budget",
-                "10000",
-                "--image-max-tokens",
-                "560",
-                "--image-min-tokens",
-                "560",
-                "-ub",
-                "1160",
+                "--server", "--host", "0.0.0.0", "--port", str(cfg["port"]),
+                "-hf", get_config()["models"]["evaluator"], "--no-cache-prompt",
+                "--parallel", "1", "-ngl", "999", "-c", "32000",
+                "--reasoning-format", "deepseek", "--cache-type-k", "f16",
+                "--cache-type-v", "f16", "--reasoning-budget", "10000",
+                "--image-max-tokens", "560", "--image-min-tokens", "560", "-ub", "1160",
             ],
             health_check_url=cfg["health_url"],
             health_timeout=cfg["health_timeout"],
             cfg=cfg,
+            use_gpu=True,
         )
     return _llama_manager
 
@@ -272,23 +253,50 @@ def get_embed_manager():
             },
             environment={"HOME": "/home/user"},
             command=[
-                "--server",
-                "--embeddings",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                str(cfg["port"]),
-                "-hf",
-                get_config()["models"]["embed"],
-                "-ngl",
-                "999",
-                "-c",
-                "8192",
-                "--flash-attn",
-                "on",
+                "--server", "--embeddings", "--host", "0.0.0.0", "--port", str(cfg["port"]),
+                "-hf", get_config()["models"]["embed"], "-ngl", "999", "-c", "8192",
+                "--flash-attn", "on",
             ],
             health_check_url=cfg["health_url"],
             health_timeout=cfg["health_timeout"],
             cfg=cfg,
+            use_gpu=True,
         )
     return _embed_manager
+
+
+# --- New CPU Embed Server ---
+def get_embed_cpu_manager():
+    global _embed_cpu_manager
+    if _embed_cpu_manager is None:
+        cfg = get_config()["containers"]["embed"]
+        _embed_cpu_manager = DockerContainerManager(
+            image=cfg["image"],
+            name=f"{cfg['name']}-cpu",
+            ports={f"{cfg['port']}/tcp": cfg["port"]},
+            volumes={
+                os.path.expanduser("~/.cache/huggingface"): {
+                    "bind": "/home/user/.cache/huggingface",
+                    "mode": "rw",
+                }
+            },
+            environment={"HOME": "/home/user"},
+            command=[
+                "--server", "--embeddings", "--host", "0.0.0.0", "--port", str(cfg["port"]),
+                "-hf", get_config()["models"]["embed"], "-ngl", "0",  # Force CPU
+                "-c", "8192", "--flash-attn", "on",
+            ],
+            health_check_url=f"http://127.0.0.1:{cfg['port']}/health",
+            health_timeout=cfg["health_timeout"],
+            cfg=cfg,
+            use_gpu=False,  # Explicitly disable GPU
+        )
+    return _embed_cpu_manager
+
+
+def start_embed_cpu_server():
+    get_embed_cpu_manager().start()
+
+
+def stop_embed_cpu_server():
+    get_embed_cpu_manager().stop()

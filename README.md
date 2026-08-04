@@ -13,6 +13,7 @@ Evo-Prompt operates on a continuous evolutionary cycle:
 3.  **Evaluate (Vision):** A Vision-Language Model (served via a local **llama.cpp** container) acts as a judge, scoring each image against a multi-dimensional rubric (Fidelity, Composition, Style, etc.).
 4.  **Mutate (Refinement):** The best-performing prompts and their specific critiques are fed back to the LLM. The LLM then "mutates" the prompts—fixing flaws and doubling down on strengths—to produce a superior next generation.
 
+📝 **Note:** When running with `--cw`, the diffusion step is replaced by direct text generation. Evaluation focuses on narrative logic, style adherence, and genre conventions instead of visual fidelity.
 ---
 
 ## 🚀 Getting Started
@@ -51,6 +52,16 @@ Add one intent per line to `prompts.md`, then run:
 ```bash
 uv run evoprompt -f prompts.md
 ```
+
+**Creative Writing Mode (Text-Only):**
+Enable `--cw` to switch to a text-only evolutionary loop. This mode uses CPU embeddings, skips ComfyUI entirely, and automatically loads `config/cw_prompts.yaml`.
+```bash
+uv run evoprompt --cw -p "Write a short sci-fi noir story about a detective who can dream in code, cyberpunk style"
+```
+
+| Flag | Description | Default |
+| :--- | :--- | :--- |
+| `--cw` / `--creative-writing` | Enables text-only optimization with CW rubrics & CPU embeddings | `off` |
 
 **Custom Configuration:**
 ```bash
