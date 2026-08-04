@@ -9,12 +9,12 @@ logger = logging.getLogger(__name__)
 
 
 def _format_response(
-    response: Dict[str, Any], target_count: int
+    response: Dict[str, Any], target_count: int, generated_by=""
 ) -> List[PromptCandidate]:
     raw = response.get("content", "")
     reasoning = response.get("reasoning", "")
     prompts = parse_prompts(raw, target_count)
-    return [PromptCandidate(prompt=p, reasoning=reasoning) for p in prompts]
+    return [PromptCandidate(prompt=p, reasoning=reasoning, generated_by=generated_by) for p in prompts]
 
 
 def expand(intent: str, previous_prompts: List[str], pop: int) -> List[PromptCandidate]:
@@ -29,7 +29,7 @@ def expand(intent: str, previous_prompts: List[str], pop: int) -> List[PromptCan
         system_prompt=sys_prompt,
         prompt=user_msg,
     )
-    return _format_response(response, pop)
+    return _format_response(response, pop, 'expand')
 
 
 def crossover(
@@ -45,7 +45,7 @@ def crossover(
         system_prompt=sys_prompt,
         prompt=user_msg,
     )
-    return _format_response(response, pop)
+    return _format_response(response, pop, 'crossover')
 
 
 def fix_prompt(
@@ -65,7 +65,7 @@ def fix_prompt(
         system_prompt=sys_prompt,
         prompt=user_msg,
     )
-    return _format_response(response, pop)
+    return _format_response(response, pop, 'fix_prompt')
 
 
 def mutate(
@@ -80,4 +80,4 @@ def mutate(
         system_prompt=sys_prompt,
         prompt=feedback,
     )
-    return _format_response(response, pop)
+    return _format_response(response, pop, 'mutate')

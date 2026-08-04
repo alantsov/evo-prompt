@@ -87,6 +87,7 @@ def optimize_cw(
                     scalar_score=score,
                     generation=gen,
                     embedding=embeddings[i],
+                    generated_by=cand.generated_by,
                     prompt_reasoning=cand.reasoning,
                     scoring_reasoning=rubrics[i].get("scoring_reasoning", ""),
                 )

@@ -22,12 +22,14 @@ class GenerationRecord:
     embedding: List[float]
     prompt_reasoning: str = ""
     scoring_reasoning: str = ""
+    generated_by: str = ""
 
 
 @dataclass
 class PromptCandidate:
     prompt: str
     reasoning: str = ""
+    generated_by: str = ""
 
 
 def parse_prompts(raw: str, target_count: int) -> List[str]:

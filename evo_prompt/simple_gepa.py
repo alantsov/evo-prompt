@@ -100,6 +100,7 @@ def run_optimizer(
                         scalar_score=scalar,
                         generation=gen,
                         embedding=embeddings[i],
+                        generated_by=candidate.generated_by,
                         prompt_reasoning=candidate.reasoning,
                         scoring_reasoning=rubric.get("scoring_reasoning", ""),
                     )

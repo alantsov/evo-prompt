@@ -97,6 +97,7 @@ def optimize(
                     prompt=prompt,
                     scalar_score=score,
                     rubric=rubric,
+                    generated_by=new_prompts_with_reasoning[i].generated_by,
                     prompt_reasoning=generation_reasoning,
                     scoring_reasoning=rubric["scoring_reasoning"],
                 )

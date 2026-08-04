@@ -123,10 +123,12 @@
 
     .meta {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-start;
       align-items: center;
       font-size: 0.85rem;
       color: var(--text-muted);
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
     .badge {
@@ -134,6 +136,7 @@
       border-radius: 12px;
       font-weight: 600;
       font-size: 0.75rem;
+      white-space: nowrap;
     }
     .badge-score { background: #333; color: var(--text); }
     .badge-gen { background: #2a2f3a; color: var(--text-muted); }
@@ -269,7 +272,7 @@
   </div>
 
   <div class="controls">
-    <input type="text" id="search" placeholder="Search prompt or intent...">
+    <input type="text" id="search" placeholder="Search prompt, intent, or generator...">
     <select id="sort-by">
       <option value="score-desc">Score: High → Low</option>
       <option value="score-asc">Score: Low → High</option>
@@ -373,12 +376,13 @@
 
     function filterAndSort() {
       let data = [...rawData];
-      const q = searchInput.value.toLowerCase();
+      const q = searchInput.value.toLowerCase().trim();
 
       if (q) {
         data = data.filter(d =>
-          d.prompt.toLowerCase().includes(q) ||
-          (d.intent && d.intent.toLowerCase().includes(q))
+          (d.prompt || '').toLowerCase().includes(q) ||
+          (d.intent || '').toLowerCase().includes(q) ||
+          (d.generated_by || '').toLowerCase().includes(q)
         );
       }
 
@@ -410,6 +414,7 @@
         const imgUrl = processPath(item.image_path);
         const scoreBadge = `<span class="badge badge-score">Score: ${item.scalar_score ?? '-'}</span>`;
         const genBadge = `<span class="badge badge-gen">Gen #${item.generation ?? '?'}</span>`;
+        const genByText = `<span>🛠 ${item.generated_by || 'Unknown'}</span>`;
 
         let rubricHtml = '';
         if (item.rubric) {
@@ -437,6 +442,7 @@
               <div class="meta">
                 ${scoreBadge}
                 ${genBadge}
+                ${genByText}
               </div>
               <div class="prompt-box">${item.prompt || 'No prompt'}</div>
               <button class="reasoning-btn" data-label="🔄 Show Prompt Reasoning" data-hide-label="🔄 Hide Prompt Reasoning" onclick="toggleReasoning(this)">🔄 Show Prompt Reasoning</button>
