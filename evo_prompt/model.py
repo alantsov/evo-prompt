@@ -196,17 +196,13 @@ def format_feedback(
         scan(r.rubric)
         dim_scores.sort(key=lambda x: x[0], reverse=True)
 
-        preserve, fix, improve = [], [], []
+        fix = []
         for sc, name, note in dim_scores:
-            if sc >= 0.85 and len(preserve) < 2:
-                preserve.append(f"  - **{name}** ({sc:.2f}){note}")
-            elif sc <= 0.30:
+            if sc < 1.0:
                 fix.append(f"  - **{name}** ({sc:.2f}){note}")
-            elif 0.55 < sc < 0.65:
-                improve.append(f"  - **{name}** ({sc:.2f}){note}")
         block = get_config()["prompts"]["optimizer_mutate_prompt_block"].format(
-            fix="\n".join(fix + improve),
-            issues_count=len(fix + improve),
+            fix="\n".join(fix),
+            issues_count=len(fix),
             index=i + 1,
             score=round(r.scalar_score, 2),
             prompt=r.prompt,
