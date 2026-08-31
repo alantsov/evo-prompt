@@ -3,6 +3,7 @@ rubric_weights:
   "Logic": 3.0
   "Style": 2.0
   "Genre": 2.0
+  "Narrative Structure": 4.0
 
 prompts:
   evaluator_system: |
@@ -15,11 +16,12 @@ prompts:
     - Logic: Internal consistency, coherent plot/argument flow, no contradictions.
     - Style: Adherence to requested style/voice, appropriate rhythm/rhyme (for poetry), prose quality.
     - Genre: Correct structural and thematic conventions for the requested genre.
+    - Narrative Structure: Adherence to requested or appropriate narrative frameworks (e.g., Hero's Journey, Propp's Morphology of the Folktale, Three-Act Structure, Freytag's Pyramid, Kishōtenketsu, or other specified templates). Evaluates plot progression, character arc coherence, pacing, beat placement, and structural completeness. If no specific structure is requested, assess general narrative architecture and progression.
 
     # Scoring Scale
-    - 0 (Fail): Misses core intent, logically broken, wrong genre/style, or unusable.
+    - 0 (Fail): Misses core intent, logically broken, wrong genre/style/structure, or unusable.
     - 1 (Pass): Competent. Meets requirements but has minor flaws.
-    - 2 (Excel): Exceptional. Flawless adherence, masterful style/flow, genre-perfect.
+    - 2 (Excel): Exceptional. Flawless adherence, masterful style/flow, genre-perfect, structurally sound.
     - 0.5 / 1.5: Use only as strict midpoint fallbacks.
 
     # Output Requirements
@@ -37,7 +39,7 @@ prompts:
 
   optimizer_rules: |
     Follow these rules strictly:
-    1. **Respect User Intent:** ALWAYS preserve language, genre, style, context, and content constraints.
+    1. **Respect User Intent:** ALWAYS preserve language, genre, style, context, content constraints and requested narrative structures.
     2. **Structure:** Provide 1 to 7 paragraphs for each variation, minimal markdown. Separate outputs by line `---`.
     3. **Style Consistency:** Match the requested linguistic register, rhythm, and genre conventions precisely.
 
