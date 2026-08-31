@@ -1,6 +1,6 @@
 models:
-  evaluator: "unsloth/gemma-4-26B-A4B-it-GGUF:UD-Q5_K_S"
-  optimizer: "unsloth/gemma-4-26B-A4B-it-GGUF:UD-Q5_K_S"
+  evaluator: "huihui-ai/Huihui-Qwen3.8-27B-abliterated-GGUF:UD-Q4_K_XL"
+  optimizer: "huihui-ai/Huihui-Qwen3.8-27B-abliterated-GGUF:UD-Q4_K_XL"
   embed: "Qwen/Qwen3-Embedding-4B-GGUF:F16"
 
 llama_cpp:
