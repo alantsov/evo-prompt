@@ -16,5 +16,7 @@ prompts4.md
 prompts5.md
 output/
 
+cw-prompts.md
+
 ComfyUI/custom_nodes/*/
 ComfyUI/models/*/
