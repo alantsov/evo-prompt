@@ -227,7 +227,7 @@ def get_llama_manager():
                 "--parallel", "1", "-ngl", "999", "-c", "32000",
                 "--reasoning-format", "deepseek", "--cache-type-k", "f16",
                 "--cache-type-v", "f16", "--reasoning-budget", "10000",
-                "--image-max-tokens", "560", "--image-min-tokens", "560", "-ub", "1160",
+                #"--image-max-tokens", "560", "--image-min-tokens", "560", "-ub", "1160",
                 "--spec-type", "draft-mtp", "--spec-draft-n-max", "4"
             ],
             health_check_url=cfg["health_url"],
