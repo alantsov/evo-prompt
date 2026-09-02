@@ -226,6 +226,7 @@ def get_llama_manager():
                 "--cache-type-v", "f16", "--reasoning-budget", "10000",
                 #"--image-max-tokens", "560", "--image-min-tokens", "560", "-ub", "1160",
                 "--spec-type", "draft-mtp", "--spec-draft-n-max", "4"
+                #"-hfd", "incoai/Qwen3.8-27B-DFlash2-GGUF:Q4_k_m", "--spec-type", "draft-dflash", "--spec-draft-n-max", "6"
             ],
             health_check_url=cfg["health_url"],
             health_timeout=cfg["health_timeout"],

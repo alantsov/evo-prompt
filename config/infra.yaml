@@ -23,7 +23,7 @@ containers:
     health_url: "http://127.0.0.1:8188/system_stats"
     health_timeout: 180
   llama_cpp:
-    image: "ghcr.io/ggml-org/llama.cpp:full-cuda12-b10200"
+    image: "ghcr.io/ggml-org/llama.cpp:full-cuda12-b10752"
     name: "llama-cpp-server"
     port: 8080
     health_url: "http://127.0.0.1:8080/health"
