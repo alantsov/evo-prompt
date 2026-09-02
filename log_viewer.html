@@ -224,6 +224,7 @@
       border-left: 2px solid #333;
     }
 
+    /* ---------- Modal ---------- */
     .modal {
       display: none;
       position: fixed;
@@ -234,19 +235,176 @@
       align-items: center;
       cursor: zoom-out;
     }
-    .modal img {
-      max-width: 95%;
-      max-height: 95%;
+    .modal.active { display: flex; }
+
+    .modal-content {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      max-width: 94%;
+      max-height: 94%;
+    }
+
+    #modal-img {
+      flex: 0 1 auto;
+      min-width: 0;
+      max-width: calc(94vw - 450px);
+      max-height: 94vh;
+      object-fit: contain;
       border-radius: 4px;
+      background: #000;
       box-shadow: 0 0 20px rgba(0,0,0,0.8);
     }
-    .modal.active { display: flex; }
+    #modal-img.swapping { animation: img-swap 0.18s ease; }
+    @keyframes img-swap {
+      from { opacity: 0.25; transform: scale(0.99); }
+      to   { opacity: 1;    transform: scale(1); }
+    }
+    .modal.active .modal-content { animation: modal-pop 0.18s ease; }
+    @keyframes modal-pop {
+      from { opacity: 0; transform: translateY(6px) scale(0.985); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .modal-panel {
+      flex: 0 0 800px;
+      max-width: 40vw;
+      max-height: 94vh;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      cursor: default;
+      box-shadow: var(--shadow);
+    }
+    .modal-panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-panel-title {
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--accent);
+    }
+    .modal-counter {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .modal-panel-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px 0;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .modal-prompt {
+      flex: 1;
+      padding: 14px 16px 18px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      cursor: default;
+      scrollbar-width: thin;
+      scrollbar-color: #444 transparent;
+    }
+    .modal-prompt::-webkit-scrollbar { width: 6px; }
+    .modal-prompt::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+    .modal-prompt p {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--text);
+    }
+    .modal-prompt p.empty { color: var(--text-muted); font-style: italic; }
+
+    .modal-btn {
+      position: fixed;
+      z-index: 1001;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(24, 27, 33, 0.85);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 1.15rem;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, border-color 0.15s, transform 0.15s;
+    }
+    .modal-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    #modal-close {
+      top: 16px;
+      right: 16px;
+      width: 38px;
+      height: 38px;
+      font-size: 1rem;
+    }
+    #modal-close:hover { transform: scale(1.08); }
+    #modal-prev { left: 16px;  top: 50%; transform: translateY(-50%); }
+    #modal-next { right: 16px; top: 50%; transform: translateY(-50%); }
+    #modal-prev:hover { transform: translateY(-50%) scale(1.08); }
+    #modal-next:hover { transform: translateY(-50%) scale(1.08); }
+
+    .modal-hint {
+      position: fixed;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1001;
+      padding: 4px 14px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(24, 27, 33, 0.75);
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      white-space: nowrap;
+      pointer-events: none;
+    }
 
     .empty-state {
       text-align: center;
       color: var(--text-muted);
       padding: 40px;
       grid-column: 1 / -1;
+    }
+
+    @media (max-width: 900px) {
+      .modal-content {
+        flex-direction: column;
+        gap: 12px;
+        max-width: 96%;
+        max-height: 96%;
+      }
+      #modal-img {
+        max-width: 92vw;
+        max-height: 50vh;
+      }
+      .modal-panel {
+        flex: 0 1 auto;
+        width: 92vw;
+        max-width: 92vw;
+        max-height: 38vh;
+      }
     }
 
     @media (max-width: 600px) {
@@ -285,19 +443,46 @@
     <div class="empty-state">Place your log in <code>data/log.json</code> or use the button to load it manually.</div>
   </main>
 
-  <div id="modal" class="modal">
-    <img id="modal-img" src="" alt="">
+  <div id="modal" class="modal" role="dialog" aria-modal="true" aria-label="Image viewer">
+    <button type="button" id="modal-close" class="modal-btn" aria-label="Close viewer">✕</button>
+    <button type="button" id="modal-prev" class="modal-btn" aria-label="Previous image">‹</button>
+    <button type="button" id="modal-next" class="modal-btn" aria-label="Next image">›</button>
+
+    <div class="modal-content">
+      <img id="modal-img" src="" alt="">
+      <div id="modal-panel" class="modal-panel">
+        <div class="modal-panel-head">
+          <span class="modal-panel-title">📝 Prompt</span>
+          <span id="modal-counter" class="modal-counter"></span>
+        </div>
+        <div id="modal-meta" class="modal-panel-meta"></div>
+        <div id="modal-prompt" class="modal-prompt"></div>
+      </div>
+    </div>
+
+    <div id="modal-hint" class="modal-hint">← / → to browse · Esc to close</div>
   </div>
 
   <script>
     const ASSET_DIR = 'data/';
 
     let rawData = [];
+    let currentList = []; // items in the order currently shown in the grid
+    let modalIndex = 0;   // position of the image currently in the modal
+
     const grid = document.getElementById('grid');
     const searchInput = document.getElementById('search');
     const sortSelect = document.getElementById('sort-by');
     const modal = document.getElementById('modal');
     const modalImg = document.getElementById('modal-img');
+    const modalPanel = document.getElementById('modal-panel');
+    const modalPrompt = document.getElementById('modal-prompt');
+    const modalMeta = document.getElementById('modal-meta');
+    const modalCounter = document.getElementById('modal-counter');
+    const modalPrev = document.getElementById('modal-prev');
+    const modalNext = document.getElementById('modal-next');
+    const modalClose = document.getElementById('modal-close');
+    const modalHint = document.getElementById('modal-hint');
     const fileInput = document.getElementById('file-input');
     const intentBanner = document.getElementById('intent-banner');
     const intentText = document.getElementById('intent-text');
@@ -400,22 +585,25 @@
 
     function render() {
       if (rawData.length === 0) {
+        currentList = [];
         grid.innerHTML = '<div class="empty-state">Place your log in <code>data/log.json</code> or use the button to load it manually.</div>';
         return;
       }
 
       const data = filterAndSort();
+      currentList = data;
+
       if (data.length === 0) {
         grid.innerHTML = '<div class="empty-state">No results match your search.</div>';
         return;
       }
 
-      grid.innerHTML = data.map((item) => {
+      grid.innerHTML = data.map((item, i) => {
         const imgUrl = processPath(item.image_path);
         const imageAlt = item.prompt ? escapeHtml(item.prompt) : '';
         const scoreBadge = `<span class="badge badge-score">Score: ${item.scalar_score ?? '-'}</span>`;
         const genBadge = `<span class="badge badge-gen">Gen #${item.generation ?? '?'}</span>`;
-        const genByText = `<span>🛠 ${item.generated_by || 'Unknown'}</span>`;
+        const genByText = `<span>🛠 ${escapeHtml(item.generated_by || 'Unknown')}</span>`;
 
         let rubricHtml = '';
         if (item.rubric) {
@@ -438,7 +626,7 @@
 
         return `
           <div class="card">
-            <img class="card-img" src="${imgUrl}" alt="Full Text" data-alt="${imageAlt}" onclick="openModal(this)" loading="lazy">
+            <img class="card-img" src="${imgUrl}" alt="Prompt" data-index="${i}" onclick="openModal(this)" loading="lazy">
             <div class="card-body">
               <div class="meta">
                 ${scoreBadge}
@@ -461,15 +649,84 @@
       }).join('');
     }
 
+    /* ---------- Modal ---------- */
+
+    // Splits a prompt into paragraphs on empty (or whitespace-only) lines.
+    function buildPromptParagraphs(prompt) {
+      const text = String(prompt || '').replace(/\r\n/g, '\n');
+      if (!text.trim()) return '<p class="empty">No prompt available.</p>';
+      const paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+      if (paragraphs.length === 0) return '<p class="empty">No prompt available.</p>';
+      return paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+    }
+
+    function showModalItem() {
+      if (currentList.length === 0) {
+        closeModal();
+        return;
+      }
+      // Wrap around within the currently visible (filtered/sorted) list
+      modalIndex = ((modalIndex % currentList.length) + currentList.length) % currentList.length;
+      const item = currentList[modalIndex];
+
+      modalImg.classList.remove('swapping');
+      void modalImg.offsetWidth; // force reflow so the swap animation can restart
+      modalImg.src = processPath(item.image_path);
+      modalImg.alt = '';
+      modalImg.classList.add('swapping');
+
+      modalPrompt.innerHTML = buildPromptParagraphs(item.prompt);
+      modalPrompt.scrollTop = 0;
+      modalMeta.innerHTML = `
+        <span class="badge badge-score">Score: ${item.scalar_score ?? '-'}</span>
+        <span class="badge badge-gen">Gen #${item.generation ?? '?'}</span>
+        <span>🛠 ${escapeHtml(item.generated_by || 'Unknown')}</span>
+      `;
+      modalCounter.textContent = `${modalIndex + 1} / ${currentList.length}`;
+
+      const multi = currentList.length > 1;
+      modalPrev.style.display = multi ? '' : 'none';
+      modalNext.style.display = multi ? '' : 'none';
+      modalHint.style.display = multi ? '' : 'none';
+    }
+
     function openModal(img) {
-      modalImg.src = img.src;
-      modalImg.alt = img.dataset.alt || img.alt || '';
+      const idx = Number(img.dataset.index);
+      modalIndex = Number.isFinite(idx) ? idx : 0;
+      document.body.style.overflow = 'hidden';
+      showModalItem();
       modal.classList.add('active');
     }
 
-    modal.addEventListener('click', () => modal.classList.remove('active'));
+    function closeModal() {
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    function stepModal(direction) {
+      if (currentList.length < 2) return;
+      modalIndex = (modalIndex + direction + currentList.length) % currentList.length;
+      showModalItem();
+    }
+
+    modal.addEventListener('click', closeModal);
+    modalPanel.addEventListener('click', (e) => e.stopPropagation()); // don't close when reading/selecting the prompt
+    modalClose.addEventListener('click', (e) => { e.stopPropagation(); closeModal(); });
+    modalPrev.addEventListener('click', (e) => { e.stopPropagation(); stepModal(-1); });
+    modalNext.addEventListener('click', (e) => { e.stopPropagation(); stepModal(1); });
+
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') modal.classList.remove('active');
+      if (!modal.classList.contains('active')) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeModal();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        stepModal(1);
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        stepModal(-1);
+      }
     });
   </script>
 </body>
