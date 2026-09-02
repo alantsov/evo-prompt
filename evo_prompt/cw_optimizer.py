@@ -53,15 +53,13 @@ def optimize_cw(
             )
             new_candidates: List[PromptCandidate] = []
             top_rec = sorted(last_generation, key=lambda r: r.scalar_score, reverse=True)[:keep]
-            for rec in top_rec:
-                new_candidates += mutate(intent, [rec], pop=1)
-
-            remaining = width - len(new_candidates)
+            new_candidates += mutate(intent, top_rec, pop=keep)
+            remaining = (width - len(new_candidates)) // 2
             if remaining > 0 and len(top_rec) >= 2:
                 top_parents = top_rec[:keep]
                 new_candidates += crossover(intent=intent, records=top_parents, pop=remaining)
 
-            remaining = width + 2 - len(new_candidates)
+            remaining = width - len(new_candidates)
             if remaining > 0:
                 diverse = select_diverse_parents(
                     trajectory, top_k=min(keep, len(trajectory)), ensure_top_k=False
@@ -69,7 +67,7 @@ def optimize_cw(
                 prev_texts = [r.prompt for r in diverse]
                 new_candidates += expand(intent=intent, previous_prompts=prev_texts, pop=remaining)
 
-            new_candidates = new_candidates[: width + 2]
+            new_candidates = new_candidates[: width]
 
             texts = [c.prompt for c in new_candidates]
             embeddings = get_embeddings(embed_model, texts)
