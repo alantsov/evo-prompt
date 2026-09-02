@@ -286,7 +286,7 @@
   </main>
 
   <div id="modal" class="modal">
-    <img id="modal-img" src="" alt="Full resolution preview">
+    <img id="modal-img" src="" alt="">
   </div>
 
   <script>
@@ -412,6 +412,7 @@
 
       grid.innerHTML = data.map((item) => {
         const imgUrl = processPath(item.image_path);
+        const imageAlt = item.prompt ? escapeHtml(item.prompt) : '';
         const scoreBadge = `<span class="badge badge-score">Score: ${item.scalar_score ?? '-'}</span>`;
         const genBadge = `<span class="badge badge-gen">Gen #${item.generation ?? '?'}</span>`;
         const genByText = `<span>🛠 ${item.generated_by || 'Unknown'}</span>`;
@@ -437,7 +438,7 @@
 
         return `
           <div class="card">
-            <img class="card-img" src="${imgUrl}" alt="Generated image" onclick="openModal('${imgUrl}')" loading="lazy">
+            <img class="card-img" src="${imgUrl}" alt="Full Text" data-alt="${imageAlt}" onclick="openModal(this)" loading="lazy">
             <div class="card-body">
               <div class="meta">
                 ${scoreBadge}
@@ -460,8 +461,9 @@
       }).join('');
     }
 
-    function openModal(src) {
-      modalImg.src = src;
+    function openModal(img) {
+      modalImg.src = img.src;
+      modalImg.alt = img.dataset.alt || img.alt || '';
       modal.classList.add('active');
     }
 
