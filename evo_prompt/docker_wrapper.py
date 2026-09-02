@@ -103,9 +103,6 @@ class DockerContainerManager:
         if self.command:
             run_kwargs["command"] = self.command
 
-        if self.name:
-            run_kwargs["name"] = self.name
-
         # Modified GPU check
         if self.use_gpu and is_gpu_available():
             run_kwargs["device_requests"] = [
