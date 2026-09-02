@@ -1,6 +1,6 @@
 rubric_weights:
-  "Intent Fidelity": 6.0
-  "Logical & Physical Coherence": 2.0
+  "Intent Fidelity": 4.0
+  "Logical & Physical Coherence": 4.0
   "Visual Quality": 1.0
   "Aesthetic Composition": 1.0
 
@@ -22,13 +22,6 @@ prompts:
     - 2 (Excel): exceptional; no visible flaw, professional-grade.
     - 0.5 and 1.5: use only when the result is genuinely between two whole numbers. Prefer whole numbers.
 
-    # Scoring method
-    1. List every explicit requirement in the intent.
-    2. List every reasonable implicit requirement.
-    3. Check the image against each requirement and record pass/fail with the visible evidence.
-    4. Convert those results into the four criterion scores.
-    5. Write one short factual sentence of visible evidence (no speculation) as each note.
-
     # Output
     Respond with a single valid JSON object only. No markdown, no code fences, no prose. Use exactly these four keys and this shape:
     {
@@ -47,12 +40,9 @@ prompts:
 
   optimizer_rules: |
     Follow these rules strictly:
-    1. Respect User Intent: preserve every element present in the intent (subject, actions, counts, setting, style, and any text). Never drop, contradict, or soften it.
+    1. Respect INTENT
     2. Direct Description: describe all content concretely and literally, with no euphemism, avoidance, or hedging.
-    3. Structure: each prompt is one continuous description (a short paragraph of at most a few sentences). Keep it concise and high-signal.
-    4. Effective T2I phrasing: lead with the main subject, then the key details, then style/lighting/composition. Use common, strong, specific words; avoid abstract or contradictory modifiers.
-    5. Simplified English: keep the vocabulary simple; if a less common word is needed, make its meaning clear from the surrounding context.
-    6. Clean output: output only the prompt text. No numbering, no labels (e.g. "Prompt 1"), no quotes, no markdown, and no instructions addressed to the model. The only allowed separator is a single line containing exactly `---` between prompts.
+    3. Simplified English: keep the vocabulary simple; if a less common word is needed, make its meaning clear from the surrounding context.
 
   optimizer_crossover_system: |
     You are an expert prompt engineer for text-to-image models.
@@ -64,7 +54,6 @@ prompts:
     3. Recombine parts across the inputs to form {pop} fresh, coherent prompts, borrowing and mixing elements rather than copying.
 
     Requirements for each new prompt:
-    - Stay faithful to the intent the inputs describe; never add elements that contradict it.
     - Be a single self-contained description that makes sense on its own.
     - Be meaningfully different from each other and from the inputs.
 
@@ -77,10 +66,8 @@ prompts:
     From the CORE INTENT you are given, write {pop} distinct prompts, each fully capable of making the image model faithfully realize that intent.
 
     Guidance:
-    - Every prompt must fully honor the intent; never drop or contradict any of its elements.
     - Vary the prompts along meaningful axes (composition, framing, angle, lighting, style, medium, mood, level of detail) so they explore different successful paths.
     - If PREVIOUS PROMPTS are provided, learn from them and make the new ones clearly different while still serving the same intent.
-    - Keep each prompt a single self-contained description.
 
     Output ONLY the {pop} prompts, separated by a single line containing exactly `---`. No numbering, no labels, no explanations, no markdown.
 
@@ -100,10 +87,9 @@ prompts:
     How to improve:
     - Compare the image against the INTENT and pinpoint which intent elements are missing, wrong, distorted, or low quality.
     - Infer what the current diffusion model is failing to parse or prioritize, and fix the phrasing: reorder for priority, strengthen key words, add concrete specifics, and remove ambiguity or contradictions.
-    - Keep everything in the INTENT that is already working.
     - Produce {pop} improved prompt(s). If more than one, vary the fixes so they explore different corrections.
 
-    Keep each prompt a single continuous description. Output ONLY the {pop} improved prompt(s), separated by a single line containing exactly `---`. No numbering, no labels, no explanations, no markdown.
+    Output ONLY the {pop} improved prompt(s), separated by a single line containing exactly `---`. No numbering, no labels, no explanations, no markdown.
 
     {rules}
 
@@ -124,7 +110,6 @@ prompts:
     - Study the scores and per-criterion issues for each previous prompt.
     - Keep the parts that already work and directly address the listed issues (missing or incorrect intent elements, quality, composition, or coherence problems).
     - Strengthen and recombine the phrasing so the diffusion model is more likely to parse and execute the prompt correctly.
-    - Stay fully faithful to the INTENT in every new prompt.
     - Make the {pop} prompts meaningfully different from each other so they explore distinct improvement paths.
 
     Keep each prompt a single continuous description. Output ONLY the {pop} prompts, separated by a single line containing exactly `---`. No numbering, no labels, no explanations, no markdown.

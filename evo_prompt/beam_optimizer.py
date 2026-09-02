@@ -14,7 +14,7 @@ from .llm_manager import (
     stop_llama_cpp_server,
 )
 from .optimizer_utils import finalize_optimization
-from .prompt_engine import expand, crossover, fix_prompt
+from .prompt_engine import expand, crossover, fix_prompt, mutate
 
 logger = logging.getLogger(__name__)
 
@@ -47,13 +47,19 @@ def optimize(
             logger.info(
                 f"Generated {len(new_prompts_with_reasoning)} prompts by fix_prompt"
             )
+            # if len(new_prompts_with_reasoning) < width and len(parents) > 1:
+            #     crossover_prompts = crossover(
+            #         intent, parents, (width - len(new_prompts_with_reasoning)) // 2
+            #     )
+            #     new_prompts_with_reasoning += crossover_prompts
+            #     logger.info(f"Generated {len(crossover_prompts)} prompts by crossover")
             if len(new_prompts_with_reasoning) < width and len(parents) > 1:
-                crossover_prompts = crossover(
-                    intent, parents, width - len(new_prompts_with_reasoning)
-                )
-                new_prompts_with_reasoning += crossover_prompts
-                logger.info(f"Generated {len(crossover_prompts)} prompts by crossover")
-            if len(new_prompts_with_reasoning) < width + 2:
+                    mutate_prompts = mutate(
+                        intent, parents, (width - len(new_prompts_with_reasoning)) // 2
+                    )
+                    new_prompts_with_reasoning += mutate_prompts
+                    logger.info(f"Generated {len(mutate_prompts)} prompts by mutate")
+            if len(new_prompts_with_reasoning) < width :
                 previous_records = select_diverse_parents(
                     trajectory, top_k=width, ensure_top_k=False
                 )
@@ -61,11 +67,11 @@ def optimize(
                 expand_prompts = expand(
                     intent,
                     previous_prompts,
-                    width + 2 - len(new_prompts_with_reasoning),
+                    width - len(new_prompts_with_reasoning),
                 )
                 new_prompts_with_reasoning += expand_prompts
                 logger.info(f"Generated {len(expand_prompts)} prompts by expand")
-            new_prompts_with_reasoning = new_prompts_with_reasoning[: (width + 2)]
+            new_prompts_with_reasoning = new_prompts_with_reasoning[:width]
             stop_llama_cpp_server()
             start_embed_server()
             new_prompts_text = [pr.prompt for pr in new_prompts_with_reasoning]
