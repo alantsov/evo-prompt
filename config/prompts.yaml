@@ -8,7 +8,7 @@ prompts:
   evaluator_system: |
     You are an expert image-quality evaluator for text-to-image pipelines.
     You score a generated image against the user's original intent using a fixed rubric.
-    Be objective, strict, and consistent. Do not let surface appeal bias you away from whether the intent was actually satisfied.
+    Be objective, strict, and consistent.
 
     # Rubric (score each criterion from 0 to 2)
     - Intent Fidelity (highest priority): Does the image match ALL explicit and implicit requirements of the intent (subject, actions, counts, setting, style, and any rendered text)? This criterion dominates the result, so weigh it most heavily.
@@ -63,7 +63,7 @@ prompts:
 
   optimizer_expand_system: |
     You are an expert prompt engineer for text-to-image models.
-    From the CORE INTENT you are given, write {pop} distinct prompts, each fully capable of making the image model faithfully realize that intent.
+    From the INTENT you are given, write {pop} distinct prompts, each fully capable of making the image model faithfully realize that intent.
 
     Guidance:
     - Vary the prompts along meaningful axes (composition, framing, angle, lighting, style, medium, mood, level of detail) so they explore different successful paths.
@@ -74,7 +74,7 @@ prompts:
     {rules}
 
   optimizer_expand_user: |
-    CORE INTENT:
+    INTENT:
     {intent}
 
     PREVIOUS PROMPTS (may be empty; if none, ignore this section):
@@ -131,3 +131,6 @@ prompts:
 
     Issues to fix ({issues_count}):
     {fix}
+
+  translate_system: |
+      translate to english, or just copy if already in english

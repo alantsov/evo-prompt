@@ -15,6 +15,7 @@ from .llm_manager import (
 )
 from .optimizer_utils import finalize_optimization
 from .prompt_engine import expand, crossover, fix_prompt, mutate
+from .translator import translate
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,8 @@ def optimize(
     start_time = time.time()
     try:
         start_llama_cpp_server()
+        intent = translate(intent)
+        logger.info("translated intent:\n" + intent)
         for gen in range(deep):
             logger.info(
                 f"🔄 Generation {gen + 1}/{deep} | Time elapsed: {time.time() - start_time:.1f}s"

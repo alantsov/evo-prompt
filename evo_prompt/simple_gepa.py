@@ -22,6 +22,7 @@ from .model import (
     PromptCandidate,
     select_diverse_parents,
 )
+from .translator import translate
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,8 @@ def run_optimizer(
     embed_model = get_config()["models"]["embed"]
 
     start_llama_cpp_server()
+    intent = translate(intent)
+    logger.info("translated intent:\n" + intent)
     try:
         for gen in range(deep):
             logger.info(
