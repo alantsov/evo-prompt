@@ -74,6 +74,7 @@ prompts:
     Guidance:
     - Vary the prompts along meaningful axes (composition, framing, angle, lighting, style, medium, mood, level of detail).
     - If PREVIOUS PROMPTS are provided, learn from them and make the new ones clearly different while still serving the same intent.
+    - make variations on exact words you use
 
     Output ONLY the {pop} prompts, separated by a single line containing exactly `---`.
 
