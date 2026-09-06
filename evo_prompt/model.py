@@ -57,52 +57,6 @@ def save_trajectory(
 
     logger.info(f"💾 Trajectory saved to: {filepath} ({len(trajectory_copy)} records)")
 
-
-def _extract_scalar_score(
-    rubric: Dict[str, Any],
-    weights: Dict[str, float] = None,
-    max_rubric_score: float = 2.0,
-) -> float:
-    if weights is None:
-        weights = {}
-    weighted_sum = 0.0
-    total_weight = 0.0
-
-    def traverse(d, current_dim=None):
-        nonlocal weighted_sum, total_weight
-        if isinstance(d, dict):
-            if "score" in d:
-                dim_name = d.get("dimension", current_dim)
-                if dim_name:
-                    v_str = str(d["score"]).strip()
-                    if v_str == "N/A":
-                        score_val = 0.4
-                    elif v_str == "0":
-                        score_val = 0.0
-                    elif v_str == "0.5":
-                        score_val = 0.3
-                    elif v_str == "1":
-                        score_val = 0.6
-                    elif v_str == "1.5":
-                        score_val = 0.8
-                    elif v_str == "2":
-                        score_val = 1.0
-                    else:
-                        try:
-                            score_val = float(v_str) / max_rubric_score
-                        except ValueError:
-                            score_val = 0.0
-                    weight = weights.get(dim_name, 1.0)
-                    weighted_sum += score_val * weight
-                    total_weight += weight
-                return
-            for k, v in d.items():
-                traverse(v, current_dim=k)
-
-    traverse(rubric)
-    return (weighted_sum / total_weight) if total_weight > 0 else 0.0
-
-
 def _cosine_similarity(v1: List[float], v2: List[float]) -> float:
     dot_product = sum(a * b for a, b in zip(v1, v2))
     mag1 = math.sqrt(sum(a * a for a in v1))

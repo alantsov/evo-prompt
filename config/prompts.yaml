@@ -4,6 +4,20 @@ rubric_weights:
   "Visual Quality": 1.0
   "Aesthetic Composition": 1.0
 
+default_rubrics:
+  "Intent Fidelity":
+    weight: 4.0
+    description: "Does the image match ALL explicit and implicit requirements of the intent (subject, actions, counts, setting, style, and any rendered text)?"
+  "Logical & Physical Coherence":
+    weight: 4.0
+    description: "anatomical correctness, realistic physics, consistent perspective, consistent lighting direction, and internally consistent objects. Judge rendered text accuracy only if the intent mentions text."
+  "Visual Quality":
+    weight: 1.0
+    description: "sharpness, resolution, and absence of artifacts, noise, blurring, banding, and unnatural smoothing."
+  "Aesthetic Composition":
+    weight: 1.0
+    description: "balance, framing, focus, color harmony, visual flow, and overall photographic/artistic appeal."
+
 prompts:
   evaluator_system: |
     You are an expert image-quality evaluator for text-to-image pipelines.
@@ -11,10 +25,7 @@ prompts:
     Be objective, strict, and consistent.
 
     # Rubric (score each criterion from 0 to 2)
-    - Intent Fidelity (highest priority): Does the image match ALL explicit and implicit requirements of the intent (subject, actions, counts, setting, style, and any rendered text)? This criterion dominates the result, so weigh it most heavily.
-    - Logical & Physical Coherence: anatomical correctness, realistic physics, consistent perspective, consistent lighting direction, and internally consistent objects. Judge rendered text accuracy only if the intent mentions text.
-    - Visual Quality: sharpness, resolution, and absence of artifacts, noise, blurring, banding, and unnatural smoothing.
-    - Aesthetic Composition: balance, framing, focus, color harmony, visual flow, and overall photographic/artistic appeal.
+    {rubrics_description}
 
     # Scoring scale (per criterion)
     - 0 (Fail): critical defect on this criterion (e.g., core subject missing or wrong, broken anatomy/physics, severe artifacts).
@@ -24,12 +35,7 @@ prompts:
 
     # Output
     Respond with a single valid JSON object only. No markdown, no code fences, no prose. Use exactly these four keys and this shape:
-    {
-      "Intent Fidelity": {"score": 0, "note": "one-sentence visible evidence"},
-      "Logical & Physical Coherence": {"score": 0, "note": "one-sentence visible evidence"},
-      "Visual Quality": {"score": 0, "note": "one-sentence visible evidence"},
-      "Aesthetic Composition": {"score": 0, "note": "one-sentence visible evidence"}
-    }
+    {output_example}
     Each "score" must be one of: 0, 0.5, 1, 1.5, 2.
 
   evaluator_user: |
@@ -57,7 +63,7 @@ prompts:
     - Be a single self-contained description that makes sense on its own.
     - Be meaningfully different from each other and from the inputs.
 
-    Output ONLY the {pop} new prompts, separated by a single line containing exactly `---`. No numbering, no labels, no explanations, no markdown.
+    Output ONLY the {pop} new prompts, separated by a single line containing exactly `---`.
 
     {rules}
 
@@ -66,10 +72,10 @@ prompts:
     From the INTENT you are given, write {pop} distinct prompts, each fully capable of making the image model faithfully realize that intent.
 
     Guidance:
-    - Vary the prompts along meaningful axes (composition, framing, angle, lighting, style, medium, mood, level of detail) so they explore different successful paths.
+    - Vary the prompts along meaningful axes (composition, framing, angle, lighting, style, medium, mood, level of detail).
     - If PREVIOUS PROMPTS are provided, learn from them and make the new ones clearly different while still serving the same intent.
 
-    Output ONLY the {pop} prompts, separated by a single line containing exactly `---`. No numbering, no labels, no explanations, no markdown.
+    Output ONLY the {pop} prompts, separated by a single line containing exactly `---`.
 
     {rules}
 
@@ -82,20 +88,18 @@ prompts:
 
   optimizer_fix_system: |
     You are an expert prompt engineer for text-to-image models.
-    You are given a user INTENT, a PROMPT, and the IMAGE that the PROMPT produced. Rewrite the PROMPT so that a newly generated image matches the INTENT far better.
+    You are given a user INTENT, a PROMPT, and the IMAGE that the PROMPT produced.
+    Rewrite the PROMPT so that a newly generated image matches the INTENT far better.
 
     How to improve:
-    - Compare the image against the INTENT and pinpoint which intent elements are missing, wrong, distorted, or low quality.
-    - Infer what the current diffusion model is failing to parse or prioritize, and fix the phrasing: reorder for priority, strengthen key words, add concrete specifics, and remove ambiguity or contradictions.
-    - Produce {pop} improved prompt(s). If more than one, vary the fixes so they explore different corrections.
-
-    Output ONLY the {pop} improved prompt(s), separated by a single line containing exactly `---`. No numbering, no labels, no explanations, no markdown.
+    - Compare the image against the INTENT and pinpoint which intent aspects are missing, wrong, or low quality in generated image.
+    - Infer, what the current diffusion model is failing to parse, and fix the phrasing
 
     {rules}
 
-  optimizer_fix_user: |
-    Rewrite the PROMPT below so a newly generated image matches the INTENT more closely. The image shown was produced by this PROMPT.
+    Provide only new PROMPT as answer
 
+  optimizer_fix_user: |
     INTENT:
     {intent}
 
@@ -112,7 +116,7 @@ prompts:
     - Strengthen and recombine the phrasing so the diffusion model is more likely to parse and execute the prompt correctly.
     - Make the {pop} prompts meaningfully different from each other so they explore distinct improvement paths.
 
-    Keep each prompt a single continuous description. Output ONLY the {pop} prompts, separated by a single line containing exactly `---`. No numbering, no labels, no explanations, no markdown.
+    Output ONLY the {pop} prompts, separated by a single line containing exactly `---`.
 
     {rules}
 
@@ -123,8 +127,6 @@ prompts:
     PREVIOUS PROMPTS WITH THEIR EVALUATION FEEDBACK:
     {prompt_blocks}
 
-    Create exactly {pop} improved prompts that use the successful paths above to fix the listed issues.
-
   optimizer_mutate_prompt_block: |
     PROMPT {index} (overall score: {score}/1.0)
     {prompt}
@@ -133,4 +135,25 @@ prompts:
     {fix}
 
   translate_system: |
-      translate to english, or just copy if already in english
+    translate to english, or just copy if already in english
+
+  create_custom_rubrics_system: |
+    provide better rubrics for comparing generated images
+    you will be given default rubrics
+    you also will be given user intent, that intent used to generate images
+    as answer provide ONLY new rubrics json
+
+    Output FORMAT example:
+    {
+      "Visual Quality": {
+        "weight": 3,
+        "description": "..."
+      }
+    }
+
+  create_custom_rubrics_user: |
+    RUBRICS:
+    {default_rubrics}
+
+    INTENT:
+    {intent}

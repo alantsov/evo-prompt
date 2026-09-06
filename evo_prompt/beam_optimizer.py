@@ -1,10 +1,10 @@
 import logging
 import time
 
-from .check import check_images_batch
+from .check import check_images_batch, get_custom_rubrics, extract_scalar_score
 from .config_loader import get_config
 from .docker_wrapper import start_comfyui_server, stop_comfyui_server
-from .model import GenerationRecord, _extract_scalar_score, select_diverse_parents
+from .model import GenerationRecord, select_diverse_parents
 from .comfy_wrapper import generate_images_batch
 from .llm_manager import (
     start_embed_server,
@@ -41,6 +41,7 @@ def optimize(
             logger.info(
                 f"🔄 Generation {gen + 1}/{deep} | Time elapsed: {time.time() - start_time:.1f}s"
             )
+            custom_rubrics = get_custom_rubrics(intent)
             new_prompts_with_reasoning = []
             parents = last_generation
             parents = sorted(parents, key=lambda r: r.scalar_score, reverse=True)
@@ -57,21 +58,23 @@ def optimize(
             #     new_prompts_with_reasoning += crossover_prompts
             #     logger.info(f"Generated {len(crossover_prompts)} prompts by crossover")
             if len(new_prompts_with_reasoning) < width and len(parents) > 1:
-                    mutate_prompts = mutate(
-                        intent, parents, (width - len(new_prompts_with_reasoning)) // 2
-                    )
-                    new_prompts_with_reasoning += mutate_prompts
-                    logger.info(f"Generated {len(mutate_prompts)} prompts by mutate")
-            if len(new_prompts_with_reasoning) < width :
-                previous_records = select_diverse_parents(
-                    trajectory, top_k=width, ensure_top_k=False
+                mutate_prompts = mutate(
+                    intent, parents, (width - len(new_prompts_with_reasoning)) // 2
                 )
-                previous_prompts = [r.prompt for r in previous_records]
+                new_prompts_with_reasoning += mutate_prompts
+                logger.info(f"Generated {len(mutate_prompts)} prompts by mutate")
+            previous_records = select_diverse_parents(
+                trajectory, top_k=width, ensure_top_k=False
+            )
+            previous_prompts = [r.prompt for r in previous_records]
+            requested_new_prompts_count = 1
+            while len(new_prompts_with_reasoning) < width :
                 expand_prompts = expand(
                     intent,
                     previous_prompts,
-                    width - len(new_prompts_with_reasoning),
+                    min(requested_new_prompts_count, width - len(new_prompts_with_reasoning))
                 )
+                requested_new_prompts_count = requested_new_prompts_count * 2
                 new_prompts_with_reasoning += expand_prompts
                 logger.info(f"Generated {len(expand_prompts)} prompts by expand")
             new_prompts_with_reasoning = new_prompts_with_reasoning[:width]
@@ -86,15 +89,15 @@ def optimize(
             images = generate_images_batch(new_prompts_text, workflow, lora_name)
             stop_comfyui_server()
             start_llama_cpp_server()
-            rubrics = check_images_batch(images, intent)
+            rubrics = check_images_batch(images, intent, custom_rubrics)
+            for i, r in enumerate(rubrics):
+                logger.debug(f'rubric {i}\n{r}')
             last_generation = []
             for i in range(len(new_prompts_with_reasoning)):
                 prompt = new_prompts_with_reasoning[i].prompt
                 generation_reasoning = new_prompts_with_reasoning[i].reasoning
                 rubric = rubrics[i]
-                score = _extract_scalar_score(
-                    rubric, weights=get_config().get("rubric_weights", {})
-                )
+                score = extract_scalar_score(rubric, custom_rubrics)
                 image = images[i]
                 logger.info(f"🖼️ Image: {image} | Score: {score:.3f}")
                 embeddings = []

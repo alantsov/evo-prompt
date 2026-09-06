@@ -13,12 +13,11 @@ from .llm_manager import (
     stop_embed_server,
 )
 from .comfy_wrapper import generate_images_batch
-from .check import check_images_batch
+from .check import check_images_batch, get_custom_rubrics, extract_scalar_score
 from .optimizer_utils import finalize_optimization
 from .prompt_engine import expand, mutate
 from .model import (
     GenerationRecord,
-    _extract_scalar_score,
     PromptCandidate,
     select_diverse_parents,
 )
@@ -47,6 +46,7 @@ def run_optimizer(
     start_llama_cpp_server()
     intent = translate(intent)
     logger.info("translated intent:\n" + intent)
+    custom_rubrics = get_custom_rubrics(intent)
     try:
         for gen in range(deep):
             logger.info(
@@ -86,12 +86,12 @@ def run_optimizer(
             stop_comfyui_server()
 
             start_llama_cpp_server()
-            rubrics = check_images_batch(image_paths, intent)
+            rubrics = check_images_batch(image_paths, intent, custom_rubrics)
 
             records: List[GenerationRecord] = []
             for i, candidate in enumerate(candidates):
                 rubric = rubrics[i]
-                scalar = _extract_scalar_score(rubric, weights=rubric_weights)
+                scalar = extract_scalar_score(rubric, custom_rubrics)
                 logger.info(f"🖼️ Image: {image_paths[i]} | Score: {scalar:.3f}")
 
                 records.append(

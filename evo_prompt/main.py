@@ -155,6 +155,19 @@ def main() -> None:
                 lora_name=args.lora_name,
             )
 
+def main_debug():
+    from .beam_optimizer import optimize as optimizer_fn
+    file_name = "prompts_ru_3.md"
+    with open(file_name, "r", encoding="utf-8") as f:
+        intent = f.read()
+    optimizer_fn(
+        intent,
+        width=4,
+        deep=3,
+        keep=2,
+        workflow="krea-2-advanced.json",
+    )
+
 
 if __name__ == "__main__":
-    main()
+    main_debug()

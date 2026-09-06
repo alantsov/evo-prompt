@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import List
 
 from .config_loader import BASE_DIR, get_config
-from .check import check_text
+from .check import check_text, extract_scalar_score
 from .docker_wrapper import (
     start_embed_cpu_server,
     stop_embed_cpu_server,
@@ -18,7 +18,6 @@ from .llm_manager import (
 )
 from .model import (
     GenerationRecord,
-    _extract_scalar_score,
     select_diverse_parents,
     PromptCandidate,
 )
@@ -76,7 +75,7 @@ def optimize_cw(
 
             current_records: List[GenerationRecord] = []
             for i, cand in enumerate(new_candidates):
-                score = _extract_scalar_score(rubrics[i], weights=rubric_weights, max_rubric_score=2.0)
+                score = extract_scalar_score(rubrics[i])
                 record = GenerationRecord(
                     intent=intent,
                     prompt=cand.prompt,
