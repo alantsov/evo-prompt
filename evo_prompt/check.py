@@ -32,7 +32,7 @@ def get_custom_rubrics(intent) -> dict | None:
     response = call_llm(prompt=user_prompt, system_prompt=system_prompt)
     try:
         json_output = response["content"]
-        logger.info('generated custom rubrics:\n'+json_output)
+        logger.debug('generated custom rubrics:\n'+json_output)
         rubrics = json.loads(json_output)
         return rubrics
     except Exception:
