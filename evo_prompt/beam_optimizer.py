@@ -1,4 +1,5 @@
 import logging
+import random
 import time
 
 from .check import check_images_batch, get_custom_rubrics, extract_scalar_score
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 def optimize(
-    intent: str,
+    original_intent: str,
     width: int = 4,
     deep: int = 6,
     keep: int = 4,
@@ -35,48 +36,51 @@ def optimize(
     start_time = time.time()
     try:
         start_llama_cpp_server()
-        intent = translate(intent)
-        logger.info("translated intent:\n" + intent)
         for gen in range(deep):
             logger.info(
                 f"🔄 Generation {gen + 1}/{deep} | Time elapsed: {time.time() - start_time:.1f}s"
             )
+            intent = translate(original_intent)
+            logger.info("translated intent:\n" + intent)
             custom_rubrics = get_custom_rubrics(intent)
             new_prompts_with_reasoning = []
             parents = last_generation
             parents = sorted(parents, key=lambda r: r.scalar_score, reverse=True)
             parents = parents[:keep]
-            for record in parents:
-                new_prompts_with_reasoning += fix_prompt(record, 1)
-            logger.info(
-                f"Generated {len(new_prompts_with_reasoning)} prompts by fix_prompt"
-            )
-            # if len(new_prompts_with_reasoning) < width and len(parents) > 1:
-            #     crossover_prompts = crossover(
-            #         intent, parents, (width - len(new_prompts_with_reasoning)) // 2
-            #     )
-            #     new_prompts_with_reasoning += crossover_prompts
-            #     logger.info(f"Generated {len(crossover_prompts)} prompts by crossover")
-            if len(new_prompts_with_reasoning) < width and len(parents) > 1:
-                mutate_prompts = mutate(
-                    intent, parents, (width - len(new_prompts_with_reasoning)) // 2
+            if len(parents) > 0:
+                current_parents_for_fix = random.choices(parents, k=random.choice(range(1, keep)))
+                for record in current_parents_for_fix:
+                    new_prompts_with_reasoning += fix_prompt(record, 1)
+                logger.info(
+                    f"Generated {len(new_prompts_with_reasoning)} prompts by fix_prompt"
                 )
-                new_prompts_with_reasoning += mutate_prompts
-                logger.info(f"Generated {len(mutate_prompts)} prompts by mutate")
+            if len(new_prompts_with_reasoning) < width and len(parents) > 1:
+                for i in range((width - len(new_prompts_with_reasoning)) // 2):
+                    current_parents = random.choices(parents, k=min(2, len(parents)))
+                    mutate_prompts = mutate(intent, current_parents, 1)
+                    new_prompts_with_reasoning += mutate_prompts
+                    logger.info(f"Generated {len(mutate_prompts)} prompts by mutate")
             previous_records = select_diverse_parents(
                 trajectory, top_k=width, ensure_top_k=False
             )
             previous_prompts = [r.prompt for r in previous_records]
-            requested_new_prompts_count = 1
-            while len(new_prompts_with_reasoning) < width :
-                expand_prompts = expand(
-                    intent,
+            expand_prompts = []
+            while len(new_prompts_with_reasoning) < width:
+                previous_prompts_options = [
+                    [],
                     previous_prompts,
-                    min(requested_new_prompts_count, width - len(new_prompts_with_reasoning))
+                    [p.prompt for p in expand_prompts],
+                    previous_prompts + [p.prompt for p in expand_prompts]
+                ]
+                expected_count = min(4, random.choice(range(width - len(new_prompts_with_reasoning))) + 1)
+                current_expand_prompts = expand(
+                    intent,
+                    random.choice(previous_prompts_options),
+                    expected_count
                 )
-                requested_new_prompts_count = requested_new_prompts_count * 2
-                new_prompts_with_reasoning += expand_prompts
-                logger.info(f"Generated {len(expand_prompts)} prompts by expand")
+                expand_prompts += current_expand_prompts
+                new_prompts_with_reasoning += current_expand_prompts
+                logger.info(f"Generated {len(current_expand_prompts)} prompts by expand")
             new_prompts_with_reasoning = new_prompts_with_reasoning[:width]
             stop_llama_cpp_server()
             start_embed_server()
