@@ -48,7 +48,7 @@ def optimize(
             parents = sorted(parents, key=lambda r: r.scalar_score, reverse=True)
             parents = parents[:keep]
             if len(parents) > 0:
-                current_parents_for_fix = random.choices(parents, k=random.choice(range(1, keep)))
+                current_parents_for_fix = parents[:random.choice(range(1, keep+1))]
                 for record in current_parents_for_fix:
                     new_prompts_with_reasoning += fix_prompt(record, 1)
                 logger.info(
@@ -61,7 +61,7 @@ def optimize(
                     new_prompts_with_reasoning += mutate_prompts
                     logger.info(f"Generated {len(mutate_prompts)} prompts by mutate")
             previous_records = select_diverse_parents(
-                trajectory, top_k=width, ensure_top_k=False
+                trajectory, top_k=random.choice(range(2, width)), ensure_top_k=False
             )
             previous_prompts = [r.prompt for r in previous_records]
             expand_prompts = []
