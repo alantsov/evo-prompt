@@ -1,4 +1,5 @@
 import logging
+import random
 import sys
 import time
 from typing import List
@@ -15,7 +16,7 @@ from .llm_manager import (
 from .comfy_wrapper import generate_images_batch
 from .check import check_images_batch, get_custom_rubrics, extract_scalar_score
 from .optimizer_utils import finalize_optimization
-from .prompt_engine import expand, mutate
+from .prompt_engine import expand, fix_prompt, mutate
 from .model import (
     GenerationRecord,
     PromptCandidate,
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_optimizer(
-    intent: str,
+    original_intent: str,
     width: int = 4,
     deep: int = 6,
     keep: int = 4,
@@ -44,26 +45,35 @@ def run_optimizer(
     embed_model = get_config()["models"]["embed"]
 
     start_llama_cpp_server()
-    intent = translate(intent)
-    logger.info("translated intent:\n" + intent)
-    custom_rubrics = get_custom_rubrics(intent)
     try:
         for gen in range(deep):
             logger.info(
                 f"🔄 Generation {gen + 1}/{deep} | Time elapsed: {time.time() - start_time:.1f}s"
             )
+            intent = translate(original_intent)
+            logger.info("translated intent:\n" + intent)
+            custom_rubrics = get_custom_rubrics(intent)
 
             if not trajectory:
                 candidates: List[PromptCandidate] = expand(intent, [], width)
                 logger.info(f"Expanded {len(candidates)} candidates")
             else:
+                refine_len = width // 4
                 mutate_len = (width * 2) // 3
-                expand_len = width - mutate_len
+                expand_len = width - mutate_len - refine_len
 
                 diverse_records = select_diverse_parents(
                     trajectory, top_keep, decay_rate=decay_rate
                 )
-                mutated = mutate(intent, diverse_records, mutate_len)
+
+                refined = []
+                for i in range(refine_len):
+                    refined += fix_prompt(random.choice(diverse_records), 1)
+                logger.info(f"refined {len(refined)} candidates")
+
+                mutated = []
+                for i in range(mutate_len):
+                    mutated += mutate(intent, random.choices(diverse_records, k=random.randint(1, len(diverse_records))), mutate_len)
                 logger.info(f"Mutated {len(mutated)} candidates")
 
                 expanded = expand(
@@ -71,7 +81,7 @@ def run_optimizer(
                 )
                 logger.info(f"Expanded {len(expanded)} candidates")
 
-                candidates = mutated + expanded
+                candidates = refined + mutated + expanded
 
             stop_llama_cpp_server()
             logger.info(f"🧠 Embedding {len(candidates)} new candidates...")
