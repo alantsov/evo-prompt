@@ -44,10 +44,7 @@ prompts:
 
     Score the image against this intent using the rubric, and return only the JSON object.
 
-  optimizer_rules: |
-    Follow these rules strictly:
-    1. Respect INTENT
-    2. Direct Description: describe all content concretely and literally, with no euphemism, avoidance, or hedging.
+  optimizer_rules: ""
 
   optimizer_crossover_system: |
     You are an expert prompt engineer for text-to-image models.
