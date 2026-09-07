@@ -48,7 +48,6 @@ prompts:
     Follow these rules strictly:
     1. Respect INTENT
     2. Direct Description: describe all content concretely and literally, with no euphemism, avoidance, or hedging.
-    3. Simplified English: keep the vocabulary simple; if a less common word is needed, make its meaning clear from the surrounding context.
 
   optimizer_crossover_system: |
     You are an expert prompt engineer for text-to-image models.
