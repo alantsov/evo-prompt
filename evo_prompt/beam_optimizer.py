@@ -1,11 +1,12 @@
 import logging
+import math
 import random
 import time
 
 from .check import check_images_batch, get_custom_rubrics, extract_scalar_score
 from .config_loader import get_config
 from .docker_wrapper import start_comfyui_server, stop_comfyui_server
-from .model import GenerationRecord, select_diverse_parents
+from .model import GenerationRecord, select_diverse_parents_mmr
 from .comfy_wrapper import generate_images_batch
 from .llm_manager import (
     start_embed_server,
@@ -48,7 +49,7 @@ def optimize(
             parents = sorted(parents, key=lambda r: r.scalar_score, reverse=True)
             parents = parents[:keep]
             if len(parents) > 0:
-                current_parents_for_fix = parents[:random.choice(range(1, keep+1))]
+                current_parents_for_fix = parents[:random.randint(1, keep)]
                 for record in current_parents_for_fix:
                     new_prompts_with_reasoning += fix_prompt(record, 1)
                 logger.info(
@@ -60,11 +61,21 @@ def optimize(
                     mutate_prompts = mutate(intent, current_parents, 1)
                     new_prompts_with_reasoning += mutate_prompts
                     logger.info(f"Generated {len(mutate_prompts)} prompts by mutate")
-            previous_records = select_diverse_parents(
-                trajectory, top_k=random.choice(range(2, width)), ensure_top_k=False
+            previous_records = select_diverse_parents_mmr(
+                trajectory, random.randint(2, width)
             )
             previous_prompts = [r.prompt for r in previous_records]
             expand_prompts = []
+            if parents and previous_records:
+                for i in range(2):
+                    first_record = random.choice(parents)
+                    second_options = [pr for pr in previous_records if pr.prompt != first_record.prompt]
+                    if not second_options:
+                        second_options = parents
+                    second_record = random.choice(second_options)
+                    crossover_prompts = crossover(intent, [first_record, second_record], 1)
+                    logger.info(f"Generated {len(crossover_prompts)} prompts by crossover")
+                    new_prompts_with_reasoning += crossover_prompts
             while len(new_prompts_with_reasoning) < width:
                 previous_prompts_options = [
                     [],
@@ -72,7 +83,7 @@ def optimize(
                     [p.prompt for p in expand_prompts],
                     previous_prompts + [p.prompt for p in expand_prompts]
                 ]
-                expected_count = min(4, random.choice(range(width - len(new_prompts_with_reasoning))) + 1)
+                expected_count = min(6, random.randint(1, width - len(new_prompts_with_reasoning)))
                 current_expand_prompts = expand(
                     intent,
                     random.choice(previous_prompts_options),
@@ -103,7 +114,7 @@ def optimize(
                 rubric = rubrics[i]
                 score = extract_scalar_score(rubric, custom_rubrics)
                 image = images[i]
-                logger.info(f"🖼️ Image: {image} | Score: {score:.3f}")
+                logger.info(f"🖼️ Image: {image} | Score: {score:.3f} | embed len {len(embeddings[i])} | embed start {embeddings[i][:5]}")
                 record = GenerationRecord(
                     generation=gen,
                     embedding=embeddings[i],

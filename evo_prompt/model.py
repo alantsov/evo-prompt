@@ -64,6 +64,149 @@ def _cosine_similarity(v1: List[float], v2: List[float]) -> float:
     return dot_product / (mag1 * mag2) if mag1 > 0 and mag2 > 0 else 0.0
 
 
+def _normalize_values(values: List[float]) -> List[float]:
+    if not values:
+        return []
+
+    lo = min(values)
+    hi = max(values)
+
+    if hi - lo < 1e-12:
+        return [1.0] * len(values)
+
+    return [(v - lo) / (hi - lo) for v in values]
+
+
+def select_diverse_parents_mmr(
+    records: List[GenerationRecord],
+    top_k: int,
+    quality_weight: float = 0.55,
+    pool_factor: float = 5.0,
+    decay_rate: float = 1.0,
+) -> List[GenerationRecord]:
+    """
+    Select top-K records using an MMR-style quality/diversity tradeoff.
+
+    Args:
+        records: candidate records.
+        top_k: number of records to select.
+        quality_weight: how much to weight scalar score vs diversity.
+            - 1.0 = pure scalar score
+            - 0.0 = pure diversity
+            - 0.5-0.7 is often reasonable
+        pool_factor: how many top candidates to consider.
+            e.g. pool_factor=5 means consider top 5*top_k records.
+        decay_rate: optional generation decay.
+    """
+
+    if not records or top_k <= 0:
+        return []
+
+    if len(records) <= top_k:
+        return sorted(records, key=lambda x: x.scalar_score, reverse=True)
+
+    # 1) Optional generation decay
+    if 0.0 < decay_rate < 1.0:
+        max_gen = max(r.generation for r in records)
+        effective_scores = {
+            id(r): r.scalar_score * (decay_rate ** (max_gen - r.generation))
+            for r in records
+        }
+    else:
+        effective_scores = {id(r): r.scalar_score for r in records}
+
+    # 2) Sort all records by effective score
+    ordered = sorted(
+        records,
+        key=lambda r: effective_scores[id(r)],
+        reverse=True,
+    )
+
+    # 3) Use only a candidate pool of relatively good records
+    pool_size = min(len(ordered), max(top_k, int(pool_factor * top_k)))
+    pool = ordered[:pool_size]
+
+    # If pool is smaller than top_k, use all records.
+    if len(pool) < top_k:
+        pool = ordered[:]
+
+    selected: List[GenerationRecord] = []
+    selected_embs: List[List[float]] = []
+    selected_ids: set[int] = set()
+
+    # 4) Seed with the best record
+    first = pool[0]
+    selected.append(first)
+    selected_embs.append(first.embedding)
+    selected_ids.add(id(first))
+
+    pool = pool[1:]
+    norm_scores = _normalize_values([effective_scores[id(r)] for r in pool])
+
+    # 5) Greedily add the best quality/diversity tradeoff
+    max_sims: List[float] = []
+    while len(selected) < top_k and pool:
+        max_sims = []
+
+        for rec in pool:
+            max_sim = max(
+                _cosine_similarity(rec.embedding, emb)
+                for emb in selected_embs
+            )
+            max_sims.append(max_sim)
+
+        # Rescale similarity so the least similar candidate gets diversity_score = 1.0
+        # and the most similar candidate gets diversity_score = 0.0.
+        lo_sim = min(max_sims)
+        hi_sim = max(max_sims)
+
+        if hi_sim - lo_sim > 1e-12:
+            diversity_scores = [
+                1.0 - (s - lo_sim) / (hi_sim - lo_sim)
+                for s in max_sims
+            ]
+        else:
+            # All remaining candidates are equally similar to selected records.
+            diversity_scores = [1.0] * len(pool)
+
+        best_idx = -1
+        best_key = None
+
+        for idx, rec in enumerate(pool):
+            score = (
+                quality_weight * norm_scores[idx]
+                + (1.0 - quality_weight) * diversity_scores[idx]
+            )
+
+            # Tie-break by normalized score.
+            key = (score, norm_scores[idx])
+
+            if best_key is None or key > best_key:
+                best_key = key
+                best_idx = idx
+
+        if best_idx == -1:
+            break
+
+        rec = pool.pop(best_idx)
+        norm_scores.pop(best_idx)
+
+        selected.append(rec)
+        selected_embs.append(rec.embedding)
+        selected_ids.add(id(rec))
+
+    # Fallback in case of weird edge cases, e.g. empty embeddings.
+    if len(selected) < top_k:
+        for rec in ordered:
+            if id(rec) not in selected_ids:
+                selected.append(rec)
+                selected_ids.add(id(rec))
+
+            if len(selected) == top_k:
+                break
+    logger.info(f"select_diverse_parents_mmr will return {len(selected)} records, max_sims: {max_sims}")
+    return selected
+
 def select_diverse_parents(
     records: List[GenerationRecord],
     top_k: int,
