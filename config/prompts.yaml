@@ -46,6 +46,13 @@ prompts:
 
   optimizer_rules: ""
 
+  expand_rules: |
+      Rules:
+        1. split propmt into paragraphs.
+        2. one paragraph per each significant visual part of image (panel/character/object/layer...)
+        3. one paragraph per each aspect of image (composition/style/color pallete/...)
+        4. use capital letters for headers in paragraphs and as reference to other paragraphs
+
   optimizer_crossover_system: |
     You are an expert prompt engineer for text-to-image models.
     You are given one or more existing prompts. Recombine their parts to create {pop} NEW and DISTINCT prompts that keep the same underlying intent while exploring different executions.

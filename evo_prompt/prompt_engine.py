@@ -22,7 +22,7 @@ def expand(intent: str, previous_prompts: List[str], pop: int) -> List[PromptCan
         intent=intent, previous_prompts="\n---\n".join(previous_prompts), pop=pop
     )
     sys_prompt = get_config()["prompts"]["optimizer_expand_system"].format(
-        pop=pop, rules=get_config()["prompts"]["optimizer_rules"]
+        pop=pop, rules=get_config()["prompts"]["expand_rules"]
     )
     response = call_llm(
         model=get_config()["models"]["optimizer"],
