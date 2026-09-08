@@ -46,9 +46,8 @@ def call_llm(model="", image=None, prompt=None, system_prompt=None, temperature=
         "model": model,
         "messages": messages,
         "temperature": temperature,
-        "max_tokens": 20000,
-        "repeat_penalty": 1.05,
-        "top_k": 64,
+        "repeat_penalty": 1.00,
+        "top_k": 20,
         "top_p": 0.95,
         "stream": False,
     }
