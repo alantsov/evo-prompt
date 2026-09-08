@@ -204,7 +204,6 @@ def select_diverse_parents_mmr(
 
             if len(selected) == top_k:
                 break
-    logger.info(f"select_diverse_parents_mmr will return {len(selected)} records, max_sims: {max_sims}")
     return selected
 
 def select_diverse_parents(

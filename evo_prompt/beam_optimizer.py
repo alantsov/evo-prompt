@@ -114,7 +114,7 @@ def optimize(
                 rubric = rubrics[i]
                 score = extract_scalar_score(rubric, custom_rubrics)
                 image = images[i]
-                logger.info(f"🖼️ Image: {image} | Score: {score:.3f} | embed len {len(embeddings[i])} | embed start {embeddings[i][:5]}")
+                logger.info(f"🖼️ Image: {image} | Score: {score:.3f}")
                 record = GenerationRecord(
                     generation=gen,
                     embedding=embeddings[i],
