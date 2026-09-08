@@ -40,7 +40,7 @@ def run_optimizer(
     trajectory: List[GenerationRecord] = []
     start_time = time.time()
     top_keep = min(keep, width)
-    decay_rate = 0.8
+    decay_rate = 1.0
     rubric_weights = get_config().get("rubric_weights", {})
     embed_model = get_config()["models"]["embed"]
 
