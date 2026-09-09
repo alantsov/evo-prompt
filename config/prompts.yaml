@@ -42,8 +42,6 @@ prompts:
     # Original user intent:
     {intent}
 
-    Score the image against this intent using the rubric, and return only the JSON object.
-
   optimizer_rules: ""
 
   expand_rules: |
