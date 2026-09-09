@@ -110,6 +110,9 @@ prompts:
     PROMPT:
     {prompt}
 
+    FEEDBACK:
+    {feedback}
+
   optimizer_mutate_system: |
     You are an expert prompt engineer for text-to-image models.
     You are given a user INTENT plus a set of previously evaluated prompts, each with its overall score and the specific issues found.

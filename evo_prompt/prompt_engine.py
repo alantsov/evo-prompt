@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import List, Dict, Any
 
@@ -21,8 +22,11 @@ def expand(intent: str, previous_prompts: List[str], pop: int) -> List[PromptCan
     user_msg = get_config()["prompts"]["optimizer_expand_user"].format(
         intent=intent, previous_prompts="\n---\n".join(previous_prompts), pop=pop
     )
+    rules = ""
+    if len(previous_prompts) == 0:
+        rules = get_config()["prompts"]["expand_rules"]
     sys_prompt = get_config()["prompts"]["optimizer_expand_system"].format(
-        pop=pop, rules=get_config()["prompts"]["expand_rules"]
+        pop=pop, rules=rules
     )
     response = call_llm(
         model=get_config()["models"]["optimizer"],
@@ -52,7 +56,7 @@ def fix_prompt(
     record: GenerationRecord, pop: int, image: str | None = None
 ) -> List[PromptCandidate]:
     user_msg = get_config()["prompts"]["optimizer_fix_user"].format(
-        intent=record.intent, prompt=record.prompt
+        intent=record.intent, prompt=record.prompt, feedback=json.dumps(record.rubric, indent=4)
     )
     sys_prompt = get_config()["prompts"]["optimizer_fix_system"].format(
         pop=pop, rules=get_config()["prompts"]["optimizer_rules"]
