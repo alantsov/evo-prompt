@@ -1,15 +1,14 @@
+import json
 import logging
 import random
 import time
 
 from .check import check_images_batch, get_custom_rubrics, extract_scalar_score
 from .config_loader import get_config
-from .docker_wrapper import start_comfyui_server, stop_comfyui_server
+from .docker_wrapper import start_comfyui_server, start_embed_cpu_server, stop_comfyui_server, stop_embed_cpu_server
 from .model import GenerationRecord, select_diverse_parents_mmr
 from .comfy_wrapper import generate_images_batch
 from .llm_manager import (
-    start_embed_server,
-    stop_embed_server,
     get_embeddings,
     start_llama_cpp_server,
     stop_llama_cpp_server,
@@ -36,6 +35,7 @@ def optimize(
     start_time = time.time()
     try:
         start_llama_cpp_server()
+        start_embed_cpu_server()
         for gen in range(deep):
             logger.info(
                 f"🔄 Generation {gen + 1}/{deep} | Time elapsed: {time.time() - start_time:.1f}s"
@@ -96,20 +96,19 @@ def optimize(
                 new_prompts_with_reasoning += current_expand_prompts
                 logger.info(f"Generated {len(current_expand_prompts)} prompts by expand")
             new_prompts_with_reasoning = new_prompts_with_reasoning[:width]
-            stop_llama_cpp_server()
-            start_embed_server()
             new_prompts_text = [pr.prompt for pr in new_prompts_with_reasoning]
             embeddings = get_embeddings(
                 get_config()["models"]["embed"], new_prompts_text
             )
-            stop_embed_server()
+            logger.info(f"calculated embeddings for {len(new_prompts_text)} new prompts")
+            stop_llama_cpp_server()
             start_comfyui_server()
             images = generate_images_batch(new_prompts_text, workflow, lora_name)
             stop_comfyui_server()
             start_llama_cpp_server()
             rubrics = check_images_batch(images, intent, custom_rubrics)
             for i, r in enumerate(rubrics):
-                logger.debug(f'rubric {i}\n{r}')
+                logger.debug(f'rubric {i}\n{json.dumps(r, indent=4)}')
             last_generation = []
             for i in range(len(new_prompts_with_reasoning)):
                 prompt = new_prompts_with_reasoning[i].prompt
@@ -134,13 +133,14 @@ def optimize(
             trajectory += last_generation
             trajectory.sort(key=lambda x: (x.scalar_score, x.generation), reverse=True)
         stop_llama_cpp_server()
+        stop_embed_cpu_server()
         logger.info(
             f"🔄 Optimization finished | Total time: {time.time() - start_time:.1f}s"
         )
     finally:
         stop_llama_cpp_server()
         stop_comfyui_server()
-        stop_embed_server()
+        stop_embed_cpu_server()
     finalize_optimization(trajectory, output_dir, image_count)
     return sorted(
         trajectory, key=lambda r: (r.generation, r.scalar_score), reverse=True
