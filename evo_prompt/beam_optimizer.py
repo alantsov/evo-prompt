@@ -42,8 +42,9 @@ def optimize(
                 f"🔄 Generation {gen + 1}/{deep} | Time elapsed: {time.time() - start_time:.1f}s"
             )
             intent = translate(original_intent)
-            logger.info("translated intent:\n" + intent)
+            logger.info("translated intent to english")
             custom_rubrics = get_custom_rubrics(intent)
+            logger.info("generated custom rubrics")
             new_prompts_with_reasoning = []
             parents = last_generation
             parents = sorted(parents, key=lambda r: r.scalar_score, reverse=True)

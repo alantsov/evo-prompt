@@ -86,7 +86,7 @@ def _worker(
         if not image_filename:
             raise Exception(f"No image found in ComfyUI history for prompt {prompt_id}")
 
-        logger.info(
+        logger.debug(
             f"📥 Downloading image for task {index + 1}/{total}: {image_filename}"
         )
         img_resp = requests.get(
