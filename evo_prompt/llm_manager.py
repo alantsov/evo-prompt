@@ -27,6 +27,10 @@ def call_llm(model="", image=None, prompt=None, system_prompt=None, temperature=
     host = get_config()["llama_cpp"]["llm_api_url"]
     messages = []
     if system_prompt:
+        system_prompt = system_prompt.strip()
+    if prompt:
+        prompt = prompt.strip()
+    if system_prompt:
         messages.append({"role": "system", "content": system_prompt})
 
     content = []
@@ -39,7 +43,8 @@ def call_llm(model="", image=None, prompt=None, system_prompt=None, temperature=
                 "image_url": {"url": f"data:image/png;base64,{img_b64}"},
             }
         )
-    content.append({"type": "text", "text": prompt})
+    if prompt:
+        content.append({"type": "text", "text": prompt})
     messages.append({"role": "user", "content": content})
 
     payload = {

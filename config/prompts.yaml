@@ -105,9 +105,9 @@ prompts:
     - Compare the image against the INTENT and pinpoint which intent aspects are missing, wrong, or low quality in generated image.
     - Infer, what the current diffusion model is failing to parse, and fix the phrasing
 
-    {rules}
-
     {separator_rule}
+
+    {rules}
 
   optimizer_fix_user_no_feedback: |
     INTENT:
