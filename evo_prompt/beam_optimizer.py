@@ -1,5 +1,4 @@
 import logging
-import math
 import random
 import time
 
@@ -89,7 +88,7 @@ def optimize(
                 use_rules = random.randint(0, 1) == 1
                 current_expand_prompts = expand(
                     intent,
-                    random.choice(previous_prompts_options),
+                    random.choice(previous_prompts_options)[:keep],
                     expected_count,
                     use_rules=use_rules
                 )
