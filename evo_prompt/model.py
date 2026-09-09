@@ -292,10 +292,10 @@ def format_feedback(
                     scan(v, k)
 
         scan(r.rubric)
-        dim_scores.sort(key=lambda x: x[0], reverse=True)
+        dim_scores.sort(key=lambda x: x[0])
 
         fix = []
-        for sc, name, note in dim_scores:
+        for sc, name, note in dim_scores[:3]:
             if sc < 1.0:
                 fix.append(f"  - **{name}** ({sc:.2f}){note}")
         block = get_config()["prompts"]["optimizer_mutate_prompt_block"].format(
