@@ -84,10 +84,12 @@ def optimize(
                     previous_prompts + [p.prompt for p in expand_prompts]
                 ]
                 expected_count = min(6, random.randint(1, width - len(new_prompts_with_reasoning)))
+                use_rules = random.randint(0, 1) == 1
                 current_expand_prompts = expand(
                     intent,
                     random.choice(previous_prompts_options),
-                    expected_count
+                    expected_count,
+                    use_rules=use_rules
                 )
                 expand_prompts += current_expand_prompts
                 new_prompts_with_reasoning += current_expand_prompts

@@ -57,6 +57,7 @@ def save_trajectory(
 
     logger.info(f"💾 Trajectory saved to: {filepath} ({len(trajectory_copy)} records)")
 
+
 def _cosine_similarity(v1: List[float], v2: List[float]) -> float:
     dot_product = sum(a * b for a, b in zip(v1, v2))
     mag1 = math.sqrt(sum(a * a for a in v1))
@@ -206,6 +207,7 @@ def select_diverse_parents_mmr(
                 break
     return selected
 
+
 def select_diverse_parents(
     records: List[GenerationRecord],
     top_k: int,
@@ -308,3 +310,128 @@ def format_feedback(
         intent=intent, prompt_blocks="\n\n".join(prompt_blocks), pop=pop
     )
     return result
+
+
+def _safe_format_template(template: str, **fields: str) -> str:
+    """
+    Format a template with placeholders such as {intent}, {prompt}, and {feedback}.
+
+    Falls back to plain replacement if .format() fails, which can happen when
+    prompt/feedback text contains curly braces.
+    """
+    try:
+        return template.format(**fields)
+    except Exception:
+        out = template
+        for key, value in fields.items():
+            out = out.replace("{" + key + "}", str(value))
+        return out
+
+
+def _normalize_single_feedback_score(value: Any) -> float:
+    """
+    Normalize a rubric score into [0, 1] using the same convention as format_feedback.
+    """
+    if value is None:
+        return 0.0
+
+    s = str(value).strip()
+    mapping = {
+        "N/A": 0.4,
+        "0": 0.0,
+        "0.5": 0.3,
+        "1": 0.6,
+        "1.5": 0.8,
+        "2": 1.0,
+    }
+
+    if s in mapping:
+        return mapping[s]
+
+    try:
+        return min(float(s) / 2.0, 1.0)
+    except ValueError:
+        return 0.0
+
+
+def _extract_single_record_feedback(record: GenerationRecord) -> str:
+    """
+    Build a feedback string for a single GenerationRecord.
+
+    Uses:
+    - record.scoring_reasoning if present
+    - record.scalar_score
+    - weak dimensions from record.rubric
+    """
+    parts: List[str] = []
+
+    # 1) Prefer explicit scoring reasoning when available.
+    if record.scoring_reasoning is not None and str(record.scoring_reasoning).strip():
+        parts.append(str(record.scoring_reasoning).strip())
+
+    # 2) Include scalar score.
+    if record.scalar_score is not None:
+        try:
+            parts.append(f"Scalar score: {float(record.scalar_score):.2f}")
+        except (TypeError, ValueError):
+            parts.append(f"Scalar score: {record.scalar_score}")
+
+    # 3) Extract weak rubric dimensions.
+    dim_scores: List[Any] = []
+
+    if isinstance(record.rubric, dict):
+        def scan(d: Any, current_dim: Any = None) -> None:
+            if not isinstance(d, dict):
+                return
+
+            dim_name = d.get("dimension", current_dim)
+            sc_raw = d.get("score")
+            note = d.get("note", d.get("desc", ""))
+
+            if dim_name and sc_raw is not None:
+                sc = _normalize_single_feedback_score(sc_raw)
+                note_str = (
+                    f": {str(note).strip()}"
+                    if note and str(note).strip()
+                    else ""
+                )
+                dim_scores.append((sc, str(dim_name).strip(), note_str))
+
+            for k, v in d.items():
+                if k not in ("score", "note", "desc", "dimension"):
+                    scan(v, k)
+
+        scan(record.rubric)
+
+    dim_scores.sort(key=lambda x: x[0])
+    low_scores = [item for item in dim_scores if item[0] < 1.0]
+
+    if low_scores:
+        rubric_lines = ["Rubric weaknesses:"]
+        for sc, name, note in low_scores:
+            rubric_lines.append(f"  - {name} ({sc:.2f}){note}")
+        parts.append("\n".join(rubric_lines))
+
+    if not parts:
+        parts.append("No detailed feedback available.")
+
+    return "\n\n".join(part for part in parts if part)
+
+
+def format_single_feedback(record: GenerationRecord) -> str:
+    """
+    Format feedback for a single GenerationRecord using the `refine_user` template.
+
+    Required config template keys:
+    - {intent}
+    - {prompt}
+    - {feedback}
+    """
+    template = get_config()["prompts"]["optimizer_fix_user"]
+
+    return _safe_format_template(
+        template,
+        intent=str(record.intent),
+        prompt=str(record.prompt),
+        feedback=_extract_single_record_feedback(record),
+    )

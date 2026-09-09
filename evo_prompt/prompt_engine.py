@@ -1,10 +1,9 @@
-import json
 import logging
 from typing import List, Dict, Any
 
 from .config_loader import get_config
 from .llm_manager import call_llm
-from .model import GenerationRecord, PromptCandidate, parse_prompts, format_feedback
+from .model import GenerationRecord, PromptCandidate, format_single_feedback, parse_prompts, format_feedback
 
 logger = logging.getLogger(__name__)
 
@@ -18,12 +17,12 @@ def _format_response(
     return [PromptCandidate(prompt=p, reasoning=reasoning, generated_by=generated_by) for p in prompts]
 
 
-def expand(intent: str, previous_prompts: List[str], pop: int) -> List[PromptCandidate]:
+def expand(intent: str, previous_prompts: List[str], pop: int, use_rules:bool=True) -> List[PromptCandidate]:
     user_msg = get_config()["prompts"]["optimizer_expand_user"].format(
         intent=intent, previous_prompts="\n---\n".join(previous_prompts), pop=pop
     )
     rules = ""
-    if len(previous_prompts) == 0:
+    if use_rules:
         rules = get_config()["prompts"]["expand_rules"]
     sys_prompt = get_config()["prompts"]["optimizer_expand_system"].format(
         pop=pop, rules=rules
@@ -55,9 +54,7 @@ def crossover(
 def fix_prompt(
     record: GenerationRecord, pop: int, image: str | None = None
 ) -> List[PromptCandidate]:
-    user_msg = get_config()["prompts"]["optimizer_fix_user"].format(
-        intent=record.intent, prompt=record.prompt, feedback=json.dumps(record.rubric, indent=4)
-    )
+    user_msg = format_single_feedback(record)
     sys_prompt = get_config()["prompts"]["optimizer_fix_system"].format(
         pop=pop, rules=get_config()["prompts"]["optimizer_rules"]
     )
