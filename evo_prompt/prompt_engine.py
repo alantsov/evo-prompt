@@ -24,8 +24,13 @@ def expand(intent: str, previous_prompts: List[str], pop: int, use_rules:bool=Tr
     rules = ""
     if use_rules:
         rules = get_config()["prompts"]["expand_rules"]
+    separator_rule = get_config()["prompts"]["separator_rule_single"]
+    if pop > 1:
+        separator_rule = get_config()["prompts"]["separator_rule"].format(
+            pop=pop
+        )
     sys_prompt = get_config()["prompts"]["optimizer_expand_system"].format(
-        pop=pop, rules=rules
+        pop=pop, rules=rules, separator_rule=separator_rule
     )
     response = call_llm(
         model=get_config()["models"]["optimizer"],
@@ -38,8 +43,13 @@ def expand(intent: str, previous_prompts: List[str], pop: int, use_rules:bool=Tr
 def crossover(
     intent: str, records: List[GenerationRecord], pop: int
 ) -> List[PromptCandidate]:
+    separator_rule = get_config()["prompts"]["separator_rule_single"]
+    if pop > 1:
+        separator_rule = get_config()["prompts"]["separator_rule"].format(
+            pop=pop
+        )
     sys_prompt = get_config()["prompts"]["optimizer_crossover_system"].format(
-        pop=pop, rules=get_config()["prompts"]["optimizer_rules"]
+        pop=pop, rules=get_config()["prompts"]["optimizer_rules"], separator_rule=separator_rule
     )
     previous_prompts = [r.prompt for r in records]
     user_msg = "\n---\n".join(previous_prompts)
@@ -52,14 +62,24 @@ def crossover(
 
 
 def fix_prompt(
-    record: GenerationRecord, pop: int, image: str | None = None
+    record: GenerationRecord, pop: int, use_feedback: bool = False
 ) -> List[PromptCandidate]:
-    user_msg = format_single_feedback(record)
+    if use_feedback:
+        user_msg = format_single_feedback(record)
+    else:
+        user_msg = get_config()["prompts"]["optimizer_fix_user_no_feedback"].format(
+            intent=record.intent, prompt=record.prompt
+        )
+    separator_rule = get_config()["prompts"]["separator_rule_single"]
+    if pop > 1:
+        separator_rule = get_config()["prompts"]["separator_rule"].format(
+            pop=pop
+        )
     sys_prompt = get_config()["prompts"]["optimizer_fix_system"].format(
-        pop=pop, rules=get_config()["prompts"]["optimizer_rules"]
+        pop=pop, rules=get_config()["prompts"]["optimizer_rules"], separator_rule=separator_rule
     )
     # Use provided image, fallback to record's image, or None for text-only
-    img_path = image if image is not None else record.image_path
+    img_path = record.image_path
     response = call_llm(
         model=get_config()["models"]["optimizer"],
         image=img_path if img_path else None,
@@ -73,8 +93,13 @@ def mutate(
     intent: str, diverse_records: List[GenerationRecord], pop: int
 ) -> List[PromptCandidate]:
     feedback = format_feedback(intent, diverse_records, pop)
+    separator_rule = get_config()["prompts"]["separator_rule_single"]
+    if pop > 1:
+        separator_rule = get_config()["prompts"]["separator_rule"].format(
+            pop=pop
+        )
     sys_prompt = get_config()["prompts"]["optimizer_mutate_system"].format(
-        pop=pop, rules=get_config()["prompts"]["optimizer_rules"]
+        pop=pop, rules=get_config()["prompts"]["optimizer_rules"], separator_rule=separator_rule
     )
     response = call_llm(
         model=get_config()["models"]["optimizer"],

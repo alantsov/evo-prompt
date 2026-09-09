@@ -365,17 +365,6 @@ def _extract_single_record_feedback(record: GenerationRecord) -> str:
     """
     parts: List[str] = []
 
-    # 1) Prefer explicit scoring reasoning when available.
-    if record.scoring_reasoning is not None and str(record.scoring_reasoning).strip():
-        parts.append(str(record.scoring_reasoning).strip())
-
-    # 2) Include scalar score.
-    if record.scalar_score is not None:
-        try:
-            parts.append(f"Scalar score: {float(record.scalar_score):.2f}")
-        except (TypeError, ValueError):
-            parts.append(f"Scalar score: {record.scalar_score}")
-
     # 3) Extract weak rubric dimensions.
     dim_scores: List[Any] = []
 
@@ -407,15 +396,16 @@ def _extract_single_record_feedback(record: GenerationRecord) -> str:
     low_scores = [item for item in dim_scores if item[0] < 1.0]
 
     if low_scores:
-        rubric_lines = ["Rubric weaknesses:"]
-        for sc, name, note in low_scores:
+        rubric_lines = []
+        for sc, name, note in low_scores[:3]:
             rubric_lines.append(f"  - {name} ({sc:.2f}){note}")
         parts.append("\n".join(rubric_lines))
 
     if not parts:
         parts.append("No detailed feedback available.")
-
-    return "\n\n".join(part for part in parts if part)
+    result = "\n".join(part for part in parts if part)
+    logger.debug("_extract_single_record_feedback:result:\n" + result)
+    return result
 
 
 def format_single_feedback(record: GenerationRecord) -> str:

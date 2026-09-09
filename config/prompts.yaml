@@ -34,7 +34,7 @@ prompts:
     - 0.5 and 1.5: use only when the result is genuinely between two whole numbers. Prefer whole numbers.
 
     # Output
-    Respond with a single valid JSON object only. No markdown, no code fences, no prose. Use exactly these four keys and this shape:
+    Respond with a single valid JSON object only. No markdown, no code fences, no prose. Use exactly these keys and this shape:
     {output_example}
     Each "score" must be one of: 0, 0.5, 1, 1.5, 2.
 
@@ -53,6 +53,12 @@ prompts:
         3. one paragraph per each aspect of image (composition/style/color pallete/...)
         4. use capital letters for headers in paragraphs and as reference to other paragraphs
 
+  separator_rule: |
+    Output ONLY the {pop} prompts, separated by a single line containing exactly `---`.
+
+  separator_rule_single: |
+    Provide only new PROMPT as answer
+
   optimizer_crossover_system: |
     You are an expert prompt engineer for text-to-image models.
     You are given one or more existing prompts. Recombine their parts to create {pop} NEW and DISTINCT prompts that keep the same underlying intent while exploring different executions.
@@ -66,7 +72,7 @@ prompts:
     - Be a single self-contained description that makes sense on its own.
     - Be meaningfully different from each other and from the inputs.
 
-    Output ONLY the {pop} new prompts, separated by a single line containing exactly `---`.
+    {separator_rule}
 
     {rules}
 
@@ -79,7 +85,7 @@ prompts:
     - If PREVIOUS PROMPTS are provided, learn from them and make the new ones clearly different while still serving the same intent.
     - make variations on exact words you use
 
-    Output ONLY the {pop} prompts, separated by a single line containing exactly `---`.
+    {separator_rule}
 
     {rules}
 
@@ -101,7 +107,14 @@ prompts:
 
     {rules}
 
-    Provide only new PROMPT as answer
+    {separator_rule}
+
+  optimizer_fix_user_no_feedback: |
+    INTENT:
+    {intent}
+
+    PROMPT:
+    {prompt}
 
   optimizer_fix_user: |
     INTENT:
@@ -123,7 +136,7 @@ prompts:
     - Keep the parts that already work and directly address the listed issues (missing or incorrect intent elements, quality, composition, or coherence problems).
     - Strengthen and recombine the phrasing so the diffusion model is more likely to parse and execute the prompt correctly.
 
-    Output ONLY updated prompt.
+    {separator_rule}
 
     {rules}
 
@@ -159,7 +172,7 @@ prompts:
     }
 
   create_custom_rubrics_user: |
-    RUBRICS:
+    DEFAULT RUBRICS:
     {default_rubrics}
 
     INTENT:

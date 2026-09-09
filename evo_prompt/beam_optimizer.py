@@ -51,7 +51,8 @@ def optimize(
             if len(parents) > 0:
                 current_parents_for_fix = parents[:random.randint(1, keep)]
                 for record in current_parents_for_fix:
-                    new_prompts_with_reasoning += fix_prompt(record, 1)
+                    use_feedback = random.randint(0, 1) == 1
+                    new_prompts_with_reasoning += fix_prompt(record, 1, use_feedback=use_feedback)
                 logger.info(
                     f"Generated {len(new_prompts_with_reasoning)} prompts by fix_prompt"
                 )
