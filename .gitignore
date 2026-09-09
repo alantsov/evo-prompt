@@ -10,13 +10,9 @@ wheels/
 .venv
 
 data/
-prompts2.md
-prompts3.md
-prompts4.md
-prompts5.md
 output/
 
-cw-prompts.md
+intents/
 
 ComfyUI/custom_nodes/*/
 ComfyUI/models/*/
