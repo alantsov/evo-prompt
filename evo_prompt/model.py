@@ -266,7 +266,7 @@ def format_feedback(
         if val is None:
             return 0.0
         s = str(val).strip()
-        mapping = {"N/A": 0.4, "0": 0.0, "0.5": 0.3, "1": 0.6, "1.5": 0.8, "2": 1.0}
+        mapping = {"N/A": 0.3, "0": 0.0, "0.5": 0.25, "1": 0.5, "1.5": 0.75, "2": 1.0}
         if s in mapping:
             return mapping[s]
         try:
@@ -337,11 +337,11 @@ def _normalize_single_feedback_score(value: Any) -> float:
 
     s = str(value).strip()
     mapping = {
-        "N/A": 0.4,
+        "N/A": 0.3,
         "0": 0.0,
-        "0.5": 0.3,
-        "1": 0.6,
-        "1.5": 0.8,
+        "0.5": 0.25,
+        "1": 0.5,
+        "1.5": 0.75,
         "2": 1.0,
     }
 
