@@ -50,7 +50,7 @@ def optimize(
             parents = sorted(parents, key=lambda r: r.scalar_score, reverse=True)
             parents = parents[:keep]
             if len(parents) > 0:
-                current_parents_for_fix = parents[:random.randint(1, keep)]
+                current_parents_for_fix = parents[:random.randint((keep // 2) + 1, keep)]
                 for record in current_parents_for_fix:
                     use_feedback = random.randint(0, 1) == 1
                     new_prompts_with_reasoning += fix_prompt(record, 1, use_feedback=use_feedback)
