@@ -27,6 +27,7 @@ def _parse_llm_json(response: dict) -> dict:
 def get_custom_rubrics(intent) -> dict | None:
     cfg = get_config()
     default_rubrics = cfg["default_rubrics"]
+    default_rubrics = json.dumps(default_rubrics, indent=4)
     system_prompt = cfg["prompts"]["create_custom_rubrics_system"]
     user_prompt = cfg["prompts"]["create_custom_rubrics_user"].format(default_rubrics=default_rubrics, intent=intent)
     response = call_llm(prompt=user_prompt, system_prompt=system_prompt)
