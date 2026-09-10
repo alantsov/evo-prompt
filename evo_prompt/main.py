@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 from .config_loader import BASE_DIR, load_config
+from .optimizer import optimize
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -30,13 +31,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "-n", "--top-images", default=1, help="Number of best outputs to save", type=int
     )
-    parser.add_argument(
-        "-a",
-        "--optimizer",
-        default="gepa",
-        help="Optimization algorithm",
-        choices=["gepa", "beam"],
-    )
+
     parser.add_argument(
         "--cw", "--creative-writing", action="store_true",
         help="Enable Creative Writing mode (text-only optimization, uses cw_prompts.yaml & CPU embeddings)"
@@ -116,63 +111,32 @@ def main() -> None:
             intents = [line.strip() for line in f.read().split('\n\n') if line.strip()]
     logger.debug(f"intents:\n{intents}")
 
-    # Dispatch optimizer
-    if args.cw:
-        logger.info("🧠 Using optimizer: beam (creative writing mode)")
-        from .beam_optimizer import optimize as optimizer_fn
-
-        for intent in intents:
-            logger.info(f"🚀 Starting CW optimization for: '{intent}'")
-            optimizer_fn(
-                intent,
-                width=args.pop_size,
-                deep=args.generations,
-                keep=args.top_k,
-                output_dir=args.output_dir,
-                image_count=args.top_images,
-                workflow=args.workflow,
-                lora_name=args.lora_name,
-                is_cw=True,
-            )
-    else:
-        if args.optimizer == "gepa":
-            logger.info("🧠 Using optimizer: gepa")
-            from .simple_gepa import run_optimizer as optimizer_fn
-        elif args.optimizer == "beam":
-            logger.info("🧠 Using optimizer: beam")
-            from .beam_optimizer import optimize as optimizer_fn
-        else:
-            logger.error("Invalid optimizer selection.")
-            return
-
-        # Run optimization loop
-        for intent in intents:
-            logger.info(f"🚀 Starting optimization for: '{intent}'")
-            optimizer_fn(
-                intent,
-                width=args.pop_size,
-                deep=args.generations,
-                keep=args.top_k,
-                output_dir=args.output_dir,
-                image_count=args.top_images,
-                workflow=args.workflow,
-                lora_name=args.lora_name,
-            )
+    for intent in intents:
+        logger.info(f"🚀 Starting CW optimization for: '{intent}'")
+        optimize(
+            intent,
+            width=args.pop_size,
+            deep=args.generations,
+            keep=args.top_k,
+            output_dir=args.output_dir,
+            image_count=args.top_images,
+            workflow=args.workflow,
+            lora_name=args.lora_name,
+            is_cw=args.cw,
+        )
 
 
 def main_debug():
-    from .beam_optimizer import optimize as optimizer_fn
-    file_name = "prompts_ru_3.md"
+    file_name = "prompts.md"
     with open(file_name, "r", encoding="utf-8") as f:
         intent = f.read()
-    optimizer_fn(
+    optimize(
         intent,
         width=4,
         deep=3,
-        keep=2,
-        workflow="krea-2-advanced.json",
+        keep=2
     )
 
 
 if __name__ == "__main__":
-    main()
+    main_debug()

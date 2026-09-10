@@ -69,7 +69,7 @@ uv run evoprompt \
   --infra-config ./configs/prod_infra.yaml \
   --prompts-config ./configs/v2_prompts.yaml \
   -p "cyberpunk cityscape at night" \
-  -w 8 -g 6 -k 4 -n 3 -a gepa -l debug \
+  -w 8 -g 6 -k 4 -n 3 -l debug \
   -y krea-2-advanced.json
 ```
 
@@ -83,7 +83,6 @@ uv run evoprompt \
 | `-g, --generations` | Number of optimization generations | `4` |
 | `-k, --top-k` | Top-K parents to keep for mutation/crossover | `4` |
 | `-n, --top-images` | Number of best images to save to output dir | `1` |
-| `-a, --optimizer` | Algorithm: `gepa` (diversity-focused) or `beam` (exploitation-focused) | `gepa` |
 | `-y, --workflow` | ComfyUI workflow JSON template | `krea-2-basic.json` |
 | `-l, --log-level` | Logging verbosity (`debug`, `info`, `warning`, `error`) | `info` |
 | `-o, --output-dir` | Directory to save final images & logs | `output` |
