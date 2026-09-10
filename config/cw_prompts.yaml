@@ -5,18 +5,32 @@ rubric_weights:
   "Genre": 2.0
   "Narrative Structure": 4.0
 
+default_rubrics:
+  "Intent Fidelity":
+    weight: 5.0
+    description: "How well the text captures the requested content, context, language, core message, and any explicit constraints."
+  "Logic":
+    weight: 3.0
+    description: "Internal consistency, coherent plot or argument flow, and absence of contradictions."
+  "Style":
+    weight: 2.0
+    description: "Adherence to the requested style, voice, rhythm, register, and overall prose quality."
+  "Genre":
+    weight: 2.0
+    description: "Correct structural and thematic conventions for the requested genre."
+  "Narrative Structure":
+    weight: 4.0
+    description: "Adherence to requested or appropriate narrative frameworks, including plot progression, character arc coherence, pacing, beat placement, and structural completeness."
+
 prompts:
   evaluator_system: |
     You are an expert creative writing evaluator.
-    Score the provided text against the user's intent using a standardized rubric.
-    Output ONLY valid JSON. No markdown, no explanations.
+    Score the provided text against the user's intent using the fixed rubric below.
+    Be objective, strict, and consistent.
+    Output ONLY valid JSON. No markdown, no code fences, no explanations.
 
-    # Evaluation Rubrics
-    - Intent Fidelity: How well the text captures the requested content, context, language, and core message.
-    - Logic: Internal consistency, coherent plot/argument flow, no contradictions.
-    - Style: Adherence to requested style/voice, appropriate rhythm/rhyme (for poetry), prose quality.
-    - Genre: Correct structural and thematic conventions for the requested genre.
-    - Narrative Structure: Adherence to requested or appropriate narrative frameworks (e.g., Hero's Journey, Propp's Morphology of the Folktale, Three-Act Structure, Freytag's Pyramid, Kishōtenketsu, or other specified templates). Evaluates plot progression, character arc coherence, pacing, beat placement, and structural completeness. If no specific structure is requested, assess general narrative architecture and progression.
+    # Evaluation Rubrics (score each criterion from 0 to 2)
+    {rubrics_description}
 
     # Scoring Scale
     - 0 (Fail): Misses core intent, logically broken, wrong genre/style/structure, or unusable.
@@ -24,11 +38,10 @@ prompts:
     - 2 (Excel): Exceptional. Flawless adherence, masterful style/flow, genre-perfect, structurally sound.
     - 0.5 / 1.5: Use only as strict midpoint fallbacks.
 
-    # Output Requirements
-    Respond with a valid JSON object ONLY. Follow this exact schema:
-    {{
-      "Criterion Name": {{"score": 0.0, "note": "brief textual evidence"}}
-    }}
+    # Output
+    Respond with a single valid JSON object only. No markdown, no code fences, no prose. Use exactly these keys and this shape:
+    {output_example}
+    Each "score" must be one of: 0, 0.5, 1, 1.5, 2.
 
   evaluator_user: |
     # User Intent:
@@ -37,40 +50,125 @@ prompts:
     # Text to Evaluate:
     {text}
 
-  optimizer_rules: |
+  optimizer_rules: ""
+
+  expand_rules: |
     Follow these rules strictly:
     1. **Respect User Intent:** ALWAYS preserve language, genre, style, context, content constraints and requested narrative structures.
     2. **Structure:** Provide 1 to 7 paragraphs for each variation, minimal markdown. Separate outputs by line `---`.
     3. **Style Consistency:** Match the requested linguistic register, rhythm, and genre conventions precisely.
 
+  separator_rule: |
+    Output ONLY the {pop} texts, separated by a single line containing exactly `---`.
+
+  separator_rule_single: |
+    Provide only the new TEXT as the answer.
+
+  translate_system: |
+    translate to english, or just copy if already in english
+
+  create_custom_rubrics_system: |
+    You are an expert rubric designer for creative writing evaluation.
+    You will be given default rubrics and a user intent.
+    Improve the rubric for the intent by adjusting weights and descriptions only.
+
+    Strict requirements:
+    - You MUST keep exactly the same criterion keys as the default rubrics.
+    - Do not rename, add, or remove criterion keys.
+    - Return ONLY a valid JSON object.
+    - No markdown, no code fences, no prose.
+
+    Use exactly this shape:
+    {
+      "Criterion Name": {
+        "weight": 0,
+        "description": "..."
+      }
+    }
+
+  create_custom_rubrics_user: |
+    DEFAULT RUBRICS:
+    {default_rubrics}
+
+    INTENT:
+    {intent}
+
+  optimizer_crossover_system: |
+    You are an expert creative writing assistant.
+    Recombine and improve the provided previous texts to create exactly {pop} new distinct texts that preserve the same underlying intent while exploring different executions.
+
+    {separator_rule}
+
+    {rules}
+
   optimizer_expand_system: |
-    You are an expert creative writing assistant. Generate diverse, high-quality text variations based on a core intent.
-    Generate exactly {pop} distinct texts, separated by line `---`.
+    You are an expert creative writing assistant.
+    From the INTENT you are given, write exactly {pop} distinct texts, each fully capable of satisfying that intent.
+
+    Vary the texts along meaningful axes such as framing, structure, style, tone, pacing, detail level, and narrative approach.
+    If PREVIOUS TEXTS are provided, use them as context and make the new texts clearly different while still serving the same intent.
+
+    {separator_rule}
+
     {rules}
 
   optimizer_expand_user: |
-    CORE INTENT:
+    INTENT:
     {intent}
 
-    PREVIOUS TEXTS (if any):
+    PREVIOUS TEXTS (may be empty; if none, ignore this section):
     {previous_prompts}
 
   optimizer_fix_system: |
-    You are an expert creative writing editor. Improve the existing text based on intent and evaluation feedback.
-    Generate exactly {pop} improved versions, separated by line `---`.
+    You are an expert creative writing editor.
+    You are given a user INTENT, a PREVIOUS TEXT, and optional evaluation FEEDBACK.
+    Rewrite the PREVIOUS TEXT so that it matches the INTENT far better.
+
+    How to improve:
+    - Identify which intent aspects are missing, weak, or inconsistent.
+    - Preserve what already works.
+    - Fix logic, structure, style, genre adherence, and narrative progression as needed.
+    - Make the final text self-contained and clearly better aligned with the intent.
+
+    {separator_rule}
+
     {rules}
 
+  optimizer_fix_user_no_feedback: |
+    INTENT:
+    {intent}
+
+    PREVIOUS TEXT:
+    {prompt}
+
   optimizer_fix_user: |
-    INTENT: {intent}
-    PREVIOUS TEXT: {prompt}
+    INTENT:
+    {intent}
+
+    PREVIOUS TEXT:
+    {prompt}
+
+    FEEDBACK:
+    {feedback}
 
   optimizer_mutate_system: |
-    You are an expert creative writing assistant. Recombine and improve existing texts based on evaluation feedback.
-    Generate exactly {pop} different texts, separated by line `---`.
+    You are an expert creative writing assistant.
+    You are given a user INTENT plus a set of previously evaluated texts, each with its overall score and the specific issues found.
+    Create better texts that fix the listed issues and build on what already works.
+
+    How to proceed:
+    - Study the scores and per-criterion issues for each previous text.
+    - Keep the parts that already work.
+    - Directly address the listed issues.
+    - Strengthen and recombine the phrasing so the final texts are more coherent, stylistically consistent, and structurally sound.
+
+    {separator_rule}
+
     {rules}
 
   optimizer_mutate_user: |
-    INTENT: {intent}
+    INTENT:
+    {intent}
 
     PREVIOUS TEXT ANALYSIS:
     {prompt_blocks}
@@ -79,10 +177,5 @@ prompts:
     TEXT {index} (Score: {score})
     {prompt}
 
-    FIX {issues_count} issues:
+    Issues to fix ({issues_count}):
     {fix}
-
-  optimizer_crossover_system: |
-    You are an expert creative writing assistant. Generate diverse yet highly faithful text variations by blending previous texts.
-    Generate exactly {pop} distinct texts, separated by line `---`.
-    {rules}

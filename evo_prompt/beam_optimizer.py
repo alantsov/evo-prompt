@@ -3,7 +3,7 @@ import logging
 import random
 import time
 
-from .check import check_images_batch, get_custom_rubrics, extract_scalar_score
+from .check import check_images_batch, get_custom_rubrics, extract_scalar_score, check_text
 from .config_loader import get_config
 from .docker_wrapper import start_comfyui_server, start_embed_cpu_server, stop_comfyui_server, stop_embed_cpu_server
 from .model import GenerationRecord, select_diverse_parents_mmr
@@ -29,6 +29,7 @@ def optimize(
     image_count: int = 1,
     workflow: str = "",
     lora_name: str = "",
+    is_cw: bool = False,
 ) -> list[GenerationRecord]:
     trajectory = []
     last_generation = []
@@ -40,8 +41,11 @@ def optimize(
             logger.info(
                 f"🔄 Generation {gen + 1}/{deep} | Time elapsed: {time.time() - start_time:.1f}s"
             )
-            intent = translate(original_intent)
-            logger.info("translated intent to english")
+            if is_cw:
+                intent = original_intent
+            else:
+                intent = translate(original_intent)
+                logger.info("translated intent to english")
             custom_rubrics = get_custom_rubrics(intent)
             logger.info("generated custom rubrics")
             new_prompts_with_reasoning = []
@@ -63,11 +67,11 @@ def optimize(
                     new_prompts_with_reasoning += mutate_prompts
                     logger.info(f"Generated {len(mutate_prompts)} prompts by mutate")
             previous_records = select_diverse_parents_mmr(
-                trajectory, random.randint(2, width)
+                trajectory, random.randint(min(2, width), width)
             )
             previous_prompts = [r.prompt for r in previous_records]
             expand_prompts = []
-            if parents and previous_records:
+            if parents and previous_records and len(new_prompts_with_reasoning) < width:
                 for i in range(2):
                     first_record = random.choice(parents)
                     second_options = [pr for pr in previous_records if pr.prompt != first_record.prompt]
@@ -101,12 +105,16 @@ def optimize(
                 get_config()["models"]["embed"], new_prompts_text
             )
             logger.info(f"calculated embeddings for {len(new_prompts_text)} new prompts")
-            stop_llama_cpp_server()
-            start_comfyui_server()
-            images = generate_images_batch(new_prompts_text, workflow, lora_name)
-            stop_comfyui_server()
-            start_llama_cpp_server()
-            rubrics = check_images_batch(images, intent, custom_rubrics)
+            if is_cw:
+                images = ["" for npt in new_prompts_text]
+                rubrics = [check_text(t, intent, custom_rubrics) for t in new_prompts_text]
+            else:
+                stop_llama_cpp_server()
+                start_comfyui_server()
+                images = generate_images_batch(new_prompts_text, workflow, lora_name)
+                stop_comfyui_server()
+                start_llama_cpp_server()
+                rubrics = check_images_batch(images, intent, custom_rubrics)
             for i, r in enumerate(rubrics):
                 logger.debug(f'rubric {i}\n{json.dumps(r, indent=4)}')
             last_generation = []

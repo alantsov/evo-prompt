@@ -118,18 +118,22 @@ def main() -> None:
 
     # Dispatch optimizer
     if args.cw:
-        logger.info("🧠 Using optimizer: creative-writing")
-        from .cw_optimizer import optimize_cw
+        logger.info("🧠 Using optimizer: beam (creative writing mode)")
+        from .beam_optimizer import optimize as optimizer_fn
+
         for intent in intents:
-            logger.info(f"🚀 Starting optimization for: '{intent}'")
-            if args.cw:
-                optimize_cw(
-                    intent,
-                    width=args.pop_size,
-                    deep=args.generations,
-                    keep=args.top_k,
-                    output_dir=args.output_dir,
-                )
+            logger.info(f"🚀 Starting CW optimization for: '{intent}'")
+            optimizer_fn(
+                intent,
+                width=args.pop_size,
+                deep=args.generations,
+                keep=args.top_k,
+                output_dir=args.output_dir,
+                image_count=args.top_images,
+                workflow=args.workflow,
+                lora_name=args.lora_name,
+                is_cw=True,
+            )
     else:
         if args.optimizer == "gepa":
             logger.info("🧠 Using optimizer: gepa")
@@ -155,6 +159,7 @@ def main() -> None:
                 lora_name=args.lora_name,
             )
 
+
 def main_debug():
     from .beam_optimizer import optimize as optimizer_fn
     file_name = "prompts_ru_3.md"
@@ -170,4 +175,4 @@ def main_debug():
 
 
 if __name__ == "__main__":
-    main_debug()
+    main()

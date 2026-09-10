@@ -78,14 +78,18 @@ def check_images_batch(image_filenames: List[str], intent: str, rubrics: dict | 
     return [check_image(img, intent, rubrics) for img in image_filenames]
 
 
-def check_text(text: str, intent: str) -> dict:
-    """Evaluates creative writing text against a single string intent."""
+def check_text(text: str, intent: str, rubrics: dict | None) -> dict:
     cfg = get_config()
+    rubrics = rubrics or cfg["default_rubrics"]
+    rubrics_description = "\n".join([ f"- {k}: {rubrics[k]["description"]}" for k in rubrics.keys() ])
+    output_example = { k: {"score": 0, "note": "short evidence"} for k in rubrics.keys() }
+    output_example = json.dumps(output_example, indent=4)
+    system_prompt = cfg["prompts"]["evaluator_system"].format(rubrics_description=rubrics_description, output_example=output_example)
     user_text = cfg["prompts"]["evaluator_user"].format(intent=intent, text=text)
     response = call_llm(
         model=cfg["models"]["evaluator"],
         prompt=user_text,
-        system_prompt=cfg["prompts"]["evaluator_system"],
+        system_prompt=system_prompt,
         temperature=0.0,
     )
     return _parse_llm_json(response)

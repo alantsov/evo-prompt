@@ -24,9 +24,10 @@ def finalize_optimization(trajectory, output_dir="output", image_count=1):
         return trajectory
 
     for i, record in enumerate(top_records):
-        dest_filename = Path(record.image_path).name
-        shutil.copy(record.image_path, output_path / dest_filename)
         logger.info(f"🏆 TOP {i + 1} PROMPT:\n{record.prompt}")
         logger.info(f"📊 FINAL SCORE: {record.scalar_score:.3f}")
-        logger.info(f"🖼️ IMAGE PATH: {record.image_path}")
+        if record.image_path:
+            dest_filename = Path(record.image_path).name
+            shutil.copy(record.image_path, output_path / dest_filename)
+            logger.info(f"🖼️ IMAGE PATH: {record.image_path}")
     logger.info(f"📜 TOTAL TRAJECTORY LOGGED: {len(trajectory)} records")
