@@ -16,6 +16,7 @@ class GenerationRecord:
     intent: str
     prompt: str
     image_path: str
+    text_path: str
     rubric: Dict[str, Any]
     scalar_score: float
     generation: int

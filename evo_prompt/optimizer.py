@@ -1,10 +1,11 @@
+import datetime
 import json
 import logging
 import random
 import time
 
 from .check import check_images_batch, get_custom_rubrics, extract_scalar_score, check_text
-from .config_loader import get_config
+from .config_loader import get_config, BASE_DIR
 from .docker_wrapper import start_comfyui_server, start_embed_cpu_server, stop_comfyui_server, stop_embed_cpu_server
 from .model import GenerationRecord, select_diverse_parents_mmr
 from .comfy_wrapper import generate_images_batch
@@ -106,11 +107,19 @@ def optimize(
             )
             logger.info(f"calculated embeddings for {len(new_prompts_text)} new prompts")
             if is_cw:
-                images = ["" for npt in new_prompts_text]
+                images = ["" for _npt in new_prompts_text]
+                text_files = []
+                for t_id, t in enumerate(new_prompts_text):
+                    uniq_suffix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                    new_filename = BASE_DIR / "data" / f"{uniq_suffix}_{t_id}.md"
+                    text_files.append(str(new_filename))
+                    with open(new_filename, 'w') as f:
+                        f.write(t)
                 rubrics = [check_text(t, intent, custom_rubrics) for t in new_prompts_text]
             else:
                 stop_llama_cpp_server()
                 start_comfyui_server()
+                text_files = ["" for _npt in new_prompts_text]
                 images = generate_images_batch(new_prompts_text, workflow, lora_name)
                 stop_comfyui_server()
                 start_llama_cpp_server()
@@ -123,12 +132,12 @@ def optimize(
                 generation_reasoning = new_prompts_with_reasoning[i].reasoning
                 rubric = rubrics[i]
                 score = extract_scalar_score(rubric, custom_rubrics)
-                image = images[i]
-                logger.info(f"🖼️ Image: {image} | Score: {score:.3f}")
+                logger.info(f"🖼️ File: {images[i] or text_files[i]} | Score: {score:.3f}")
                 record = GenerationRecord(
                     generation=gen,
                     embedding=embeddings[i],
-                    image_path=image,
+                    text_path=text_files[i],
+                    image_path=images[i],
                     intent=intent,
                     prompt=prompt,
                     scalar_score=score,
