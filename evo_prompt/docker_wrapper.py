@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 import threading
@@ -116,6 +117,7 @@ class DockerContainerManager:
                 logger.info("🟡 CPU-only mode enforced for this container.")
 
         try:
+            logger.debug(f"run container:\n{json.dumps(run_kwargs, indent=4)}")
             self.container = client.containers.run(**run_kwargs)
             log_thread = threading.Thread(
                 target=stream_logs_simple,
