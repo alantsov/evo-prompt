@@ -112,7 +112,7 @@ def main() -> None:
     logger.debug(f"intents:\n{intents}")
 
     for intent in intents:
-        logger.info(f"🚀 Starting CW optimization for: '{intent}'")
+        logger.info(f"🚀 Starting optimization for:\n'{intent}'")
         optimize(
             intent,
             width=args.pop_size,
